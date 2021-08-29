@@ -15,6 +15,7 @@ var debug1 = document.getElementById("dbg1");
 var debug2 = document.getElementById("dbg2");
 var debug3 = document.getElementById("dbg3");
 var debug4 = document.getElementById("dbg4");
+var debug5 = document.getElementById("dbg5");
 
 const cv_width = canvas.width;
 const cv_height = canvas.height;
@@ -69,7 +70,7 @@ canvas.addEventListener("wheel", function(e) {
 
 
 var images = { };
-var to_load_images = [ "obama.png" ];
+var to_load_images = [ "obama.png", "patrick.jpg" ];
 var loaded_imgs = 0;
 
 function load_images()
@@ -135,27 +136,41 @@ var map = [
     "          #",
     "          #",
     "  #      # ",
-    "       #   ",
+    " P     #   ",
     "####  #####"
 ];
 
 var map_width = map[0].length;
 var map_height = map.length;
 var tile_size = 64;
+var player_x = 0;
+var player_y = 0;
+var player_size = 48;
+var player_speed = 0.25;
 
 
 function loop()
 {
     requestAnimationFrame(loop);
     var delta_time = timing();
+    debug5.textContent = delta_time.toString();
 
     if (key_states['p'] && !is_played) {
-        play_sound("rap.ogg");
-        // play_noise();
+        // play_sound("rap.ogg");
+        play_noise();
         is_played = true;
     } else if (!key_states['p'] && is_played) {
         is_played = false;
     }
+
+    if (key_states['ArrowRight']) {
+        player_x += player_speed * delta_time;
+    }
+    if (key_states['ArrowLeft']) {
+        player_x -= player_speed * delta_time;
+    }
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     var tile = images["obama.png"];
     for (var y = 0; y < map_height; y++) {
@@ -165,6 +180,8 @@ function loop()
             }
         }
     }
+
+    ctx.drawImage(images["patrick.jpg"], player_x, player_y - player_size, player_size, player_size);
 }
 
 function main()
@@ -173,6 +190,15 @@ function main()
         var nowBuffering = testArrayBuffer.getChannelData(channel);
         for (var i = 0; i < testArrayBuffer.length; i++) {
             nowBuffering[i] = (Math.random() * 2 - 1) * 0.25;
+        }
+    }
+
+    for (var y = 0; y < map_height; y++) {
+        for (var x = 0; x < map_width; x++) {
+            if (map[y][x] == 'P') {
+                player_x = x * tile_size;
+                player_y = (y + 1) * tile_size;
+            }
         }
     }
 

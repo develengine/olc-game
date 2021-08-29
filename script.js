@@ -29,10 +29,12 @@ var testArrayBuffer = audioCtx.createBuffer(2, audioCtx.sampleRate * 3, audioCtx
 
 var key_states = { };
 
+
 window.onkeyup = function(e)
 {
     key_states[e.key] = false;
 }
+
 
 window.onkeydown = function(e)
 {
@@ -42,6 +44,7 @@ window.onkeydown = function(e)
 
 canvas.addEventListener('contextmenu', event => event.preventDefault());
 
+
 canvas.addEventListener('mousemove', function(e)
 {
     var canvas_rect = canvas.getBoundingClientRect();
@@ -49,6 +52,7 @@ canvas.addEventListener('mousemove', function(e)
     var y = e.clientY - canvas_rect.top;
     debug2.textContent = "Mouse: " + x + ", " + y;
 }, false);
+
 
 canvas.addEventListener('mousedown', function(e)
 {
@@ -59,6 +63,7 @@ canvas.addEventListener('mousedown', function(e)
     return false;
 });
 
+
 canvas.addEventListener('mouseup', function(e)
 {
     var canvas_rect = canvas.getBoundingClientRect();
@@ -68,6 +73,7 @@ canvas.addEventListener('mouseup', function(e)
     return false;
 });
 
+
 canvas.addEventListener("wheel", function(e) {
     e.preventDefault();
     debug4.textContent = "Wheel: " + e.deltaY;
@@ -75,8 +81,9 @@ canvas.addEventListener("wheel", function(e) {
 
 
 var images = { };
-var to_load_images = [ "obama.png", "patrick.jpg" ];
+var to_load_images = [ "obama.png", "patrick.jpg", "test.png" ];
 var loaded_imgs = 0;
+
 
 function load_images()
 {
@@ -107,6 +114,7 @@ var time_old = performance.now();
 var time_from_last_frame = 0;
 var frames_this_second = 0;
 
+
 function timing()
 {
     var time_new = performance.now();
@@ -125,6 +133,7 @@ function timing()
     return delta_time;
 }
 
+
 function play_noise()
 {
     var source = audioCtx.createBufferSource();
@@ -141,7 +150,7 @@ var map = [
     "          #",
     "          #",
     "  #      # ",
-    "  P    #   ",
+    " P     #   ",
     "####  #####"
 ];
 
@@ -156,55 +165,45 @@ var velocity_x = 0;
 var velocity_y = 0;
 
 
-function collision_engine(map, vx, vy, x, y, w, h)
+function is_solid(ch)
 {
-    var map_w = map[0].length;
-    var map_h = map.length;
-    var output = { vx: 0, vy: 0 };
+    return ch == '#';
+}
 
-    var div_x = div(x, tile_size);
-    var both_y = (div_x < map_w - 1) && ((x % tile_size) + w > tile_size);
-    var y_pos = vy < 0 ? y : y + h;
-    var y_next = y_pos + vy;
-    var y_pos_div = div(y_pos, tile_size);
-    var y_next_div = div(y_next, tile_size);
-    var y_dir = vy < 0 ? -1 : 1;
 
-    for (var i = y_pos_div + y_dir; i != y_next_div + y_dir; i += y_dir) {
-        if (map[i][div_x] == '#' || (both_y && map[i][div_x + 1] == '#')) {
-            if (y_dir == -1) {
-                y_next = (i + 1) * tile_size;
+function axis_clip(map, vb, a, b, s1, s2, vertical)
+{
+    var map_a = vertical ? map[0].length : map.length;
+    var map_b = vertical ? map.length : map[0].length;
+
+    var div_a = div(a, tile_size);
+    var both_b = (div_a < map_a - 1) && ((a % tile_size) + s1 + 1 > tile_size);
+    var b_pos = vb < 0 ? b : b + s2;
+    var b_next = b_pos + vb;
+    var b_pos_div = div(b_pos, tile_size);
+    var b_next_div = div(b_next, tile_size);
+    var b_dir = vb < 0 ? -1 : 1;
+
+    function cant_move(i)
+    {
+        if (vertical) {
+            return is_solid(map[i][div_a]) || (both_b && is_solid(map[i][div_a + 1]));
+        }
+        return is_solid(map[div_a][i]) || (both_b && is_solid(map[div_a + 1][i]));
+    }
+
+    for (var i = b_pos_div + b_dir; i != b_next_div + b_dir; i += b_dir) {
+        if (cant_move(i)) {
+            if (b_dir == -1) {
+                b_next = (i + 1) * tile_size;
             } else {
-                y_next = i * tile_size - 1;
+                b_next = i * tile_size - 1;
             }
             break;
         }
     }
 
-    output.vy = y_next - y_pos;
-
-    var div_y = div(y, tile_size);
-    var both_x = (div_y < map_h - 1) && ((y % tile_size) + h > tile_size);
-    var x_pos = vx < 0 ? x : x + w;
-    var x_next = x_pos + vx;
-    var x_pos_div = div(x_pos, tile_size);
-    var x_next_div = div(x_next, tile_size);
-    var x_dir = vx < 0 ? -1 : 1;
-
-    for (var i = x_pos_div + x_dir; i != x_next_div + x_dir; i += x_dir) {
-        if (map[div_y][i] == '#' || (both_x && map[div_y + 1][i] == '#')) {
-            if (x_dir == -1) {
-                x_next = (i + 1) * tile_size;
-            } else {
-                x_next = i * tile_size - 1;
-            }
-            break;
-        }
-    }
-
-    output.vx = x_next - x_pos;
-
-    return output;
+    return b_next - b_pos;
 }
 
 
@@ -225,20 +224,19 @@ function loop()
     var player_vx = 0;
     var player_vy = 0;
     if (key_states['ArrowRight']) {
-        player_vx += player_speed * delta_time;
+        player_vx += parseInt(player_speed * delta_time);
     }
     if (key_states['ArrowLeft']) {
-        player_vx -= player_speed * delta_time;
+        player_vx -= parseInt(player_speed * delta_time);
     }
     if (key_states['ArrowUp']) {
-        player_vy -= player_speed * delta_time;
+        player_vy -= parseInt(player_speed * delta_time);
     }
     if (key_states['ArrowDown']) {
-        player_vy += player_speed * delta_time;
+        player_vy += parseInt(player_speed * delta_time);
     }
-    var clipped = collision_engine(map, player_vx, player_vy, player_x, player_y, player_size, player_size);
-    player_x += clipped.vx;
-    player_y += clipped.vy;
+    player_y += axis_clip(map, player_vy, player_x, player_y, player_size, player_size, true);
+    player_x += axis_clip(map, player_vx, player_y, player_x, player_size, player_size, false);
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -253,6 +251,7 @@ function loop()
 
     ctx.drawImage(images["obama.png"], player_x, player_y, player_size, player_size);
 }
+
 
 function main()
 {
@@ -274,6 +273,7 @@ function main()
 
     loop();
 }
+
 
 window.onload = load_images;
 

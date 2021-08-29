@@ -141,7 +141,7 @@ var map = [
     "          #",
     "          #",
     "  #      # ",
-    " P     #   ",
+    "  P    #   ",
     "####  #####"
 ];
 
@@ -156,21 +156,53 @@ var velocity_x = 0;
 var velocity_y = 0;
 
 
-function collision(map, vx, vy, x, y, w, h)
+function collision_engine(map, vx, vy, x, y, w, h)
 {
     var map_w = map[0].length;
     var map_h = map.length;
+    var output = { vx: 0, vy: 0 };
 
     var div_x = div(x, tile_size);
-    var mod_x = x % tile_size;
-    var both_y = mod_x + w > tile_size;
+    var both_y = (div_x < map_w - 1) && ((x % tile_size) + w > tile_size);
     var y_pos = vy < 0 ? y : y + h;
-    
+    var y_next = y_pos + vy;
+    var y_pos_div = div(y_pos, tile_size);
+    var y_next_div = div(y_next, tile_size);
+    var y_dir = vy < 0 ? -1 : 1;
+
+    for (var i = y_pos_div + y_dir; i != y_next_div + y_dir; i += y_dir) {
+        if (map[i][div_x] == '#' || (both_y && map[i][div_x + 1] == '#')) {
+            if (y_dir == -1) {
+                y_next = (i + 1) * tile_size;
+            } else {
+                y_next = i * tile_size - 1;
+            }
+        }
+    }
+
+    output.vy = y_next - y_pos;
 
     var div_y = div(y, tile_size);
-    var mod_y = y % tile_size;
+    var both_x = (div_y < map_h - 1) && ((y % tile_size) + h > tile_size);
+    var x_pos = vx < 0 ? x : x + w;
+    var x_next = x_pos + vx;
+    var x_pos_div = div(x_pos, tile_size);
+    var x_next_div = div(x_next, tile_size);
+    var x_dir = vx < 0 ? -1 : 1;
 
-    
+    for (var i = x_pos_div + x_dir; i != x_next_div + x_dir; i += x_dir) {
+        if (map[div_y][i] == '#' || (both_x && map[div_y + 1][i] == '#')) {
+            if (x_dir == -1) {
+                x_next = (i + 1) * tile_size;
+            } else {
+                x_next = i * tile_size - 1;
+            }
+        }
+    }
+
+    output.vx = x_next - x_pos;
+
+    return output;
 }
 
 
@@ -188,18 +220,23 @@ function loop()
         is_played = false;
     }
 
+    var player_vx = 0;
+    var player_vy = 0;
     if (key_states['ArrowRight']) {
-        player_x += player_speed * delta_time;
+        player_vx += player_speed * delta_time;
     }
     if (key_states['ArrowLeft']) {
-        player_x -= player_speed * delta_time;
+        player_vx -= player_speed * delta_time;
     }
     if (key_states['ArrowUp']) {
-        player_y -= player_speed * delta_time;
+        player_vy -= player_speed * delta_time;
     }
     if (key_states['ArrowDown']) {
-        player_y += player_speed * delta_time;
+        player_vy += player_speed * delta_time;
     }
+    var clipped = collision_engine(map, player_vx, player_vy, player_x, player_y, player_size, player_size);
+    player_x += clipped.vx;
+    player_y += clipped.vy;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -212,7 +249,7 @@ function loop()
         }
     }
 
-    ctx.drawImage(images["obama.png"], player_x, player_y - player_size, player_size, player_size);
+    ctx.drawImage(images["obama.png"], player_x, player_y, player_size, player_size);
 }
 
 function main()
@@ -228,7 +265,7 @@ function main()
         for (var x = 0; x < map_width; x++) {
             if (map[y][x] == 'P') {
                 player_x = x * tile_size;
-                player_y = (y + 1) * tile_size - 1;
+                player_y = y * tile_size + tile_size - player_size - 1;
             }
         }
     }

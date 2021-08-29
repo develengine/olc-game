@@ -151,7 +151,7 @@ var tile_size = 64;
 var player_x = 0;
 var player_y = 0;
 var player_size = 48;
-var player_speed = 0.25;
+var player_speed = 0.5;
 var velocity_x = 0;
 var velocity_y = 0;
 
@@ -177,6 +177,7 @@ function collision_engine(map, vx, vy, x, y, w, h)
             } else {
                 y_next = i * tile_size - 1;
             }
+            break;
         }
     }
 
@@ -197,6 +198,7 @@ function collision_engine(map, vx, vy, x, y, w, h)
             } else {
                 x_next = i * tile_size - 1;
             }
+            break;
         }
     }
 

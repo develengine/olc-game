@@ -1,3 +1,8 @@
+function div(a, b)
+{
+    return parseInt(a / b);
+}
+
 var canvas = document.getElementById("canvas");
 var ctx = canvas.getContext("2d");
 
@@ -147,6 +152,26 @@ var player_x = 0;
 var player_y = 0;
 var player_size = 48;
 var player_speed = 0.25;
+var velocity_x = 0;
+var velocity_y = 0;
+
+
+function collision(map, vx, vy, x, y, w, h)
+{
+    var map_w = map[0].length;
+    var map_h = map.length;
+
+    var div_x = div(x, tile_size);
+    var mod_x = x % tile_size;
+    var both_y = mod_x + w > tile_size;
+    var y_pos = vy < 0 ? y : y + h;
+    
+
+    var div_y = div(y, tile_size);
+    var mod_y = y % tile_size;
+
+    
+}
 
 
 function loop()
@@ -169,10 +194,16 @@ function loop()
     if (key_states['ArrowLeft']) {
         player_x -= player_speed * delta_time;
     }
+    if (key_states['ArrowUp']) {
+        player_y -= player_speed * delta_time;
+    }
+    if (key_states['ArrowDown']) {
+        player_y += player_speed * delta_time;
+    }
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    var tile = images["obama.png"];
+    var tile = images["patrick.jpg"];
     for (var y = 0; y < map_height; y++) {
         for (var x = 0; x < map_width; x++) {
             if (map[y][x] == '#') {
@@ -181,7 +212,7 @@ function loop()
         }
     }
 
-    ctx.drawImage(images["patrick.jpg"], player_x, player_y - player_size, player_size, player_size);
+    ctx.drawImage(images["obama.png"], player_x, player_y - player_size, player_size, player_size);
 }
 
 function main()
@@ -197,7 +228,7 @@ function main()
         for (var x = 0; x < map_width; x++) {
             if (map[y][x] == 'P') {
                 player_x = x * tile_size;
-                player_y = (y + 1) * tile_size;
+                player_y = (y + 1) * tile_size - 1;
             }
         }
     }

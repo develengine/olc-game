@@ -3,6 +3,17 @@ function div(a, b)
     return parseInt(a / b);
 }
 
+
+function cap_off(a)
+{
+    var cutoff = 0.001;
+    if (a > -cutoff && a < cutoff) {
+        return 0;
+    }
+    return a;
+}
+
+
 var canvas = document.getElementById("canvas");
 var ctx = canvas.getContext("2d");
 
@@ -33,6 +44,9 @@ var key_states = { };
 window.onkeyup = function(e)
 {
     key_states[e.key] = false;
+    if (e.key == 'ArrowUp') {
+        jump_up();
+    }
 }
 
 
@@ -146,23 +160,22 @@ function play_noise()
 var is_played = false;
 
 var map = [
-    "           ",
-    "          #",
-    "          #",
-    "  #      # ",
-    " P     #   ",
-    "####  #####"
+    "                     ",
+    "                     ",
+    "                     ",
+    "                     ",
+    "                     ",
+    "          #          ",
+    "          #          ",
+    "  #      #           ",
+    " P     #             ",
+    "####  ###############"
 ];
+
 
 var map_width = map[0].length;
 var map_height = map.length;
 var tile_size = 64;
-var player_x = 0;
-var player_y = 0;
-var player_size = 48;
-var player_speed = 0.5;
-var velocity_x = 0;
-var velocity_y = 0;
 
 
 function is_solid(ch)
@@ -207,11 +220,29 @@ function axis_clip(map, vb, a, b, s1, s2, vertical)
 }
 
 
+var player_x = 0;
+var player_y = 0;
+var player_size = 48;
+var player_speed = 0.5;
+var velocity_x = 0;
+var velocity_y = 0;
+
+var player_acc = 0.12;
+var le_g = 0.10;
+var drag = 0.05;
+var jump_vel = 45;
+
+
+function jump_up()
+{
+    velocity_y -= jump_vel;
+}
+
+
 function loop()
 {
     requestAnimationFrame(loop);
     var delta_time = timing();
-    debug5.textContent = delta_time.toString();
 
     if (key_states['p'] && !is_played) {
         // play_sound("rap.ogg");
@@ -221,22 +252,23 @@ function loop()
         is_played = false;
     }
 
-    var player_vx = 0;
-    var player_vy = 0;
+    var player_ax = 0;
+    var player_ay = 0;
     if (key_states['ArrowRight']) {
-        player_vx += parseInt(player_speed * delta_time);
+        player_ax += player_acc * delta_time;
     }
     if (key_states['ArrowLeft']) {
-        player_vx -= parseInt(player_speed * delta_time);
+        player_ax -= player_acc * delta_time;
     }
-    if (key_states['ArrowUp']) {
-        player_vy -= parseInt(player_speed * delta_time);
-    }
-    if (key_states['ArrowDown']) {
-        player_vy += parseInt(player_speed * delta_time);
-    }
-    player_y += axis_clip(map, player_vy, player_x, player_y, player_size, player_size, true);
-    player_x += axis_clip(map, player_vx, player_y, player_x, player_size, player_size, false);
+    velocity_x += player_ax;
+    velocity_y += player_ay;
+    velocity_x *= drag * delta_time;
+    velocity_y *= drag * delta_time;
+    velocity_y += le_g * delta_time;
+    velocity_x = cap_off(velocity_x);
+    player_y += axis_clip(map, parseInt(velocity_y), player_x, player_y, player_size, player_size, true);
+    player_x += axis_clip(map, parseInt(velocity_x), player_y, player_x, player_size, player_size, false);
+    debug5.textContent = velocity_x.toString();
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 

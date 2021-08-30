@@ -227,18 +227,19 @@ var player_speed = 0.5;
 var velocity_x = 0;
 var velocity_y = 0;
 
-var player_acc = 0.09;
-var le_g = 0.07;
-var x_drag = 0.052;
-var y_drag = 0.054;
-var jump_vel = 45;
-var jump_acc = 2;
+var player_acc = 0.75;
+var gravity = 1;
+var x_drag = 0.95;
+var jump_vel = 17;
+var jump_acc = 1.25;
+var max_fall_speed = 12;
+var max_running_speed = 12;
 
+var jump = false;
 
 function jump_up()
 {
-    velocity_y -= jump_vel;
-    velocity_x *= jump_acc;
+    jump = true;
 }
 
 
@@ -255,22 +256,37 @@ function loop()
         is_played = false;
     }
 
-    var player_ax = 0;
-    var player_ay = 0;
     if (key_states['ArrowRight']) {
-        player_ax += player_acc * delta_time;
+        velocity_x += player_acc;
     }
     if (key_states['ArrowLeft']) {
-        player_ax -= player_acc * delta_time;
+        velocity_x -= player_acc;
     }
-    velocity_x += player_ax;
-    velocity_y += player_ay;
-    velocity_x *= x_drag * delta_time;
-    velocity_y *= y_drag * delta_time;
-    velocity_y += le_g * delta_time;
+
+    velocity_x *= x_drag;
     velocity_x = cap_off(velocity_x);
-    player_y += axis_clip(map, parseInt(velocity_y), player_x, player_y, player_size, player_size, true);
-    player_x += axis_clip(map, parseInt(velocity_x), player_y, player_x, player_size, player_size, false);
+
+    velocity_y += gravity;
+    velocity_y = Math.min(velocity_y, max_fall_speed);
+
+    if (jump) {
+        velocity_y = -jump_vel;
+        velocity_x *= jump_acc;
+        jump = false;
+    }
+
+    var rounded = parseInt(velocity_y);
+    var clipped = axis_clip(map, rounded, player_x, player_y, player_size, player_size, true);
+    player_y += clipped;
+    if (clipped != rounded) {
+        velocity_y = 0;
+    }
+    rounded = parseInt(velocity_x);
+    clipped = axis_clip(map, rounded, player_y, player_x, player_size, player_size, false);
+    player_x += clipped;
+    if (clipped != rounded) {
+        velocity_x = 0;
+    }
 
     debug5.textContent = 'X: ' + velocity_x.toString() + ', Y: ' + velocity_y.toString();
 

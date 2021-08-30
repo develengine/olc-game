@@ -6,7 +6,7 @@ function div(a, b)
 
 function cap_off(a)
 {
-    var cutoff = 0.001;
+    var cutoff = 0.01;
     if (a > -cutoff && a < cutoff) {
         return 0;
     }
@@ -164,11 +164,11 @@ var map = [
     "                     ",
     "                     ",
     "                     ",
-    "                     ",
-    "           ###       ",
-    "           #         ",
-    "  #       #          ",
-    " P     #             ",
+    "#             #      ",
+    "#           ###      ",
+    "#           #        ",
+    " #         #         ",
+    " P                   ",
     "####  ###############"
 ];
 
@@ -190,8 +190,8 @@ function axis_clip(map, vb, a, b, s1, s2, vertical)
     var map_b = vertical ? map.length : map[0].length;
 
     var div_a = div(a, tile_size);
-    var both_b = (div_a < map_a - 1) && ((a % tile_size) + s1 + 1 > tile_size);
-    var b_pos = vb < 0 ? b : b + s2;
+    var both_b = (div_a < map_a - 1) && ((a % tile_size) + s1 > tile_size);
+    var b_pos = vb < 0 ? b : b + s2 - 1;
     var b_next = b_pos + vb;
     var b_pos_div = div(b_pos, tile_size);
     var b_next_div = div(b_next, tile_size);
@@ -230,16 +230,22 @@ var velocity_y = 0;
 var player_acc = 0.75;
 var gravity = 1;
 var x_drag = 0.95;
-var jump_vel = 17;
+var jump_vel = 16.25;
 var jump_acc = 1.25;
-var max_fall_speed = 12;
-var max_running_speed = 12;
+var max_fall_speed = 14;
 
 var jump = false;
+
 
 function jump_up()
 {
     jump = true;
+}
+
+
+function is_on_ground()
+{
+    
 }
 
 
@@ -301,7 +307,7 @@ function loop()
         }
     }
 
-    ctx.drawImage(images["obama.png"], player_x, player_y, player_size, player_size);
+    ctx.drawImage(images["test.png"], player_x, player_y, player_size, player_size);
 }
 
 

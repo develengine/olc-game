@@ -44,15 +44,15 @@ var key_states = { };
 window.onkeyup = function(e)
 {
     key_states[e.key] = false;
-    if (e.key == 'ArrowUp') {
-        jump_up();
-    }
 }
 
 
 window.onkeydown = function(e)
 {
     key_states[e.key] = true;
+    if (e.key == 'ArrowUp' && !e.repeat) {
+        jump_up();
+    }
 }
 
 
@@ -165,9 +165,9 @@ var map = [
     "                     ",
     "                     ",
     "                     ",
-    "          #          ",
-    "          #          ",
-    "  #      #           ",
+    "           ###       ",
+    "           #         ",
+    "  #       #          ",
     " P     #             ",
     "####  ###############"
 ];
@@ -227,15 +227,18 @@ var player_speed = 0.5;
 var velocity_x = 0;
 var velocity_y = 0;
 
-var player_acc = 0.12;
-var le_g = 0.10;
-var drag = 0.05;
+var player_acc = 0.09;
+var le_g = 0.07;
+var x_drag = 0.052;
+var y_drag = 0.054;
 var jump_vel = 45;
+var jump_acc = 2;
 
 
 function jump_up()
 {
     velocity_y -= jump_vel;
+    velocity_x *= jump_acc;
 }
 
 
@@ -262,13 +265,14 @@ function loop()
     }
     velocity_x += player_ax;
     velocity_y += player_ay;
-    velocity_x *= drag * delta_time;
-    velocity_y *= drag * delta_time;
+    velocity_x *= x_drag * delta_time;
+    velocity_y *= y_drag * delta_time;
     velocity_y += le_g * delta_time;
     velocity_x = cap_off(velocity_x);
     player_y += axis_clip(map, parseInt(velocity_y), player_x, player_y, player_size, player_size, true);
     player_x += axis_clip(map, parseInt(velocity_x), player_y, player_x, player_size, player_size, false);
-    debug5.textContent = velocity_x.toString();
+
+    debug5.textContent = 'X: ' + velocity_x.toString() + ', Y: ' + velocity_y.toString();
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 

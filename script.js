@@ -6,7 +6,7 @@ function div(a, b)
 
 function cap_off(a)
 {
-    var cutoff = 0.01;
+    var cutoff = 0.1;
     if (a > -cutoff && a < cutoff) {
         return 0;
     }
@@ -160,16 +160,17 @@ function play_noise()
 var is_played = false;
 
 var map = [
-    "                     ",
-    "                     ",
-    "                     ",
-    "                     ",
-    "#             #      ",
-    "#           ###      ",
-    "#           #        ",
-    " #         #         ",
-    " P                   ",
-    "####  ###############"
+    "                    ",
+    "                    ",
+    "                    ",
+    "                    ",
+    "                    ",
+    "#                   ",
+    "#           ###     ",
+    "#           #       ",
+    " #         #        ",
+    " P                  ",
+    "####  ##############"
 ];
 
 
@@ -235,17 +236,27 @@ var jump_acc = 1.25;
 var max_fall_speed = 14;
 
 var jump = false;
+var ground_tolerance = 0;
 
-
-function jump_up()
-{
-    jump = true;
-}
+var sps = 1000;
+var tps = 60;
+var period = sps / tps;
+var elapsed = period / 2;
 
 
 function is_on_ground()
 {
-    
+    var x1 = div(player_x, tile_size);
+    var x2 = div(player_x + player_size - 1, tile_size);
+    var y = div(player_y + player_size + ground_tolerance, tile_size);
+
+    return is_solid(map[y][x1]) || is_solid(map[y][x2]);
+}
+
+
+function jump_up()
+{
+    jump = is_on_ground();
 }
 
 
@@ -253,45 +264,50 @@ function loop()
 {
     requestAnimationFrame(loop);
     var delta_time = timing();
+    elapsed += delta_time;
 
-    if (key_states['p'] && !is_played) {
-        // play_sound("rap.ogg");
-        play_noise();
-        is_played = true;
-    } else if (!key_states['p'] && is_played) {
-        is_played = false;
-    }
+    while (elapsed > period) {
+        elapsed -= period;
 
-    if (key_states['ArrowRight']) {
-        velocity_x += player_acc;
-    }
-    if (key_states['ArrowLeft']) {
-        velocity_x -= player_acc;
-    }
+        if (key_states['p'] && !is_played) {
+            // play_sound("rap.ogg");
+            play_noise();
+            is_played = true;
+        } else if (!key_states['p'] && is_played) {
+            is_played = false;
+        }
 
-    velocity_x *= x_drag;
-    velocity_x = cap_off(velocity_x);
+        if (key_states['ArrowRight']) {
+            velocity_x += player_acc;
+        }
+        if (key_states['ArrowLeft']) {
+            velocity_x -= player_acc;
+        }
 
-    velocity_y += gravity;
-    velocity_y = Math.min(velocity_y, max_fall_speed);
+        velocity_x *= x_drag;
+        velocity_x = cap_off(velocity_x);
 
-    if (jump) {
-        velocity_y = -jump_vel;
-        velocity_x *= jump_acc;
-        jump = false;
-    }
+        velocity_y += gravity;
+        velocity_y = Math.min(velocity_y, max_fall_speed);
 
-    var rounded = parseInt(velocity_y);
-    var clipped = axis_clip(map, rounded, player_x, player_y, player_size, player_size, true);
-    player_y += clipped;
-    if (clipped != rounded) {
-        velocity_y = 0;
-    }
-    rounded = parseInt(velocity_x);
-    clipped = axis_clip(map, rounded, player_y, player_x, player_size, player_size, false);
-    player_x += clipped;
-    if (clipped != rounded) {
-        velocity_x = 0;
+        if (jump) {
+            velocity_y = -jump_vel;
+            velocity_x *= jump_acc;
+            jump = false;
+        }
+
+        var rounded = parseInt(velocity_y);
+        var clipped = axis_clip(map, rounded, player_x, player_y, player_size, player_size, true);
+        player_y += clipped;
+        if (clipped != rounded) {
+            velocity_y = 0;
+        }
+        rounded = parseInt(velocity_x);
+        clipped = axis_clip(map, rounded, player_y, player_x, player_size, player_size, false);
+        player_x += clipped;
+        if (clipped != rounded) {
+            velocity_x = 0;
+        }
     }
 
     debug5.textContent = 'X: ' + velocity_x.toString() + ', Y: ' + velocity_y.toString();
@@ -307,7 +323,7 @@ function loop()
         }
     }
 
-    ctx.drawImage(images["test.png"], player_x, player_y, player_size, player_size);
+    ctx.drawImage(images["obama.png"], player_x, player_y, player_size, player_size);
 }
 
 
@@ -324,7 +340,7 @@ function main()
         for (var x = 0; x < map_width; x++) {
             if (map[y][x] == 'P') {
                 player_x = x * tile_size;
-                player_y = y * tile_size + tile_size - player_size - 1;
+                player_y = y * tile_size + tile_size - player_size;
             }
         }
     }

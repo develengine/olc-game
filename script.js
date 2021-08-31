@@ -164,11 +164,11 @@ var map = [
     "                    ",
     "                    ",
     "                    ",
-    "                    ",
     "#                   ",
     "#           ###     ",
     "#           #       ",
     " #         #        ",
+    "          #         ",
     " P                  ",
     "####  ##############"
 ];
@@ -239,7 +239,7 @@ var jump = false;
 var ground_tolerance = 0;
 
 var sps = 1000;
-var tps = 60;
+var tps = 60.5; // don't worry about it
 var period = sps / tps;
 var elapsed = period / 2;
 

@@ -95,7 +95,7 @@ canvas.addEventListener("wheel", function(e) {
 
 
 var images = { };
-var to_load_images = [ "obama.png", "patrick.jpg", "test.png" ];
+var to_load_images = [ "obama.png", "patrick.jpg", "concrete.jpg" ];
 var loaded_imgs = 0;
 
 
@@ -361,7 +361,7 @@ function loop()
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    var tile = images["patrick.jpg"];
+    var tile = images["concrete.jpg"];
     var start_x = div(parseInt(camera_x), tile_size);
     var start_y = div(parseInt(camera_y), tile_size);
     var end_x = Math.min(map_width, div(parseInt(camera_x) + cv_width, tile_size) + 1);

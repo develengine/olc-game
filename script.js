@@ -64,7 +64,7 @@ canvas.addEventListener('mousemove', function(e)
     var canvas_rect = canvas.getBoundingClientRect();
     var x = e.clientX - canvas_rect.left;
     var y = e.clientY - canvas_rect.top;
-    debug2.textContent = "Mouse: " + x + ", " + y;
+    // debug2.textContent = "Mouse: " + x + ", " + y;
 }, false);
 
 
@@ -73,7 +73,7 @@ canvas.addEventListener('mousedown', function(e)
     var canvas_rect = canvas.getBoundingClientRect();
     var x = e.clientX - canvas_rect.left;
     var y = e.clientY - canvas_rect.top;
-    debug3.textContent = "Mouse down: " + x + ", " + y;
+    // debug3.textContent = "Mouse down: " + x + ", " + y;
     return false;
 });
 
@@ -160,17 +160,22 @@ function play_noise()
 var is_played = false;
 
 var map = [
-    "                    ",
-    "                    ",
-    "                    ",
-    "                    ",
-    "#                   ",
-    "#           ###     ",
-    "#           #       ",
-    " #         #        ",
-    "          #         ",
-    " P                  ",
-    "####  ##############"
+    "# #                                      ",
+    "                                         ",
+    "###                                      ",
+    "  #                                      ",
+    "                                         ",
+    "                                         ",
+    "                                         ",
+    "                                         ",
+    "#                                        ",
+    "#           ###                          ",
+    "#           #                            ",
+    " #         #                             ",
+    "          ##                             ",
+    " P                                       ",
+    "####  ###################################",
+    "####  ###################################"
 ];
 
 
@@ -231,7 +236,7 @@ var velocity_y = 0;
 var player_acc = 0.75;
 var gravity = 1;
 var x_drag = 0.95;
-var jump_vel = 16.25;
+var jump_vel = 17.5;
 var jump_acc = 1.25;
 var max_fall_speed = 14;
 
@@ -242,6 +247,9 @@ var sps = 1000;
 var tps = 60.5; // don't worry about it
 var period = sps / tps;
 var elapsed = period / 2;
+
+var camera_x = 0;
+var camera_y = 0;
 
 
 function is_on_ground()
@@ -256,7 +264,26 @@ function is_on_ground()
 
 function jump_up()
 {
-    jump = is_on_ground();
+    // jump = is_on_ground();
+    if (is_on_ground()) {
+        velocity_y = -jump_vel;
+        velocity_x *= jump_acc;
+    }
+}
+
+
+const DIR_UP    = 0;
+const DIR_DOWN  = 1;
+const DIR_LEFT  = 2;
+const DIR_RIGHT = 3;
+
+
+function bump(x, y, dir, v)
+{
+    debug3.textContent = "Bump: " + x + ", " + y + "; "
+                       + map[y][x] + "; "
+                       + v.toString() + "; "
+                       + dir.toString();
 }
 
 
@@ -290,27 +317,56 @@ function loop()
         velocity_y += gravity;
         velocity_y = Math.min(velocity_y, max_fall_speed);
 
+        /*
         if (jump) {
             velocity_y = -jump_vel;
             velocity_x *= jump_acc;
             jump = false;
         }
+        */
 
         var rounded = parseInt(velocity_y);
         var clipped = axis_clip(map, rounded, player_x, player_y, player_size, player_size, true);
         player_y += clipped;
         if (clipped != rounded) {
+            var dir = rounded > 0 ? 1 : -1;
+            var d = dir > 0 ? DIR_DOWN : DIR_UP;
+
+            var pos1 = div(player_x, tile_size);
+            bump(pos1, div(player_y, tile_size) + dir, d, Math.abs(rounded - clipped));
+
+            var pos2 = div(player_x + player_size - 1, tile_size);
+            if (pos2 != pos1) {
+                bump(pos2, div(player_y, tile_size) + dir, d, Math.abs(rounded - clipped));
+            }
+
             velocity_y = 0;
         }
         rounded = parseInt(velocity_x);
         clipped = axis_clip(map, rounded, player_y, player_x, player_size, player_size, false);
         player_x += clipped;
         if (clipped != rounded) {
+            var dir = rounded > 0 ? 1 : -1;
+            var d = dir > 0 ? DIR_RIGHT : DIR_LEFT;
+
+
+            var pos1 = div(player_y, tile_size);
+            bump(div(player_x, tile_size) + dir, pos1, d, Math.abs(rounded - clipped));
+
+            var pos2 = div(player_y + player_size - 1, tile_size);
+            if (pos2 != pos1) {
+                bump(div(player_x, tile_size) + dir, pos2, d, Math.abs(rounded - clipped));
+            }
+
             velocity_x = 0;
         }
     }
 
     debug5.textContent = 'X: ' + velocity_x.toString() + ', Y: ' + velocity_y.toString();
+    debug2.textContent = "Pos: " + player_x + ", " + player_y;
+
+    camera_x = Math.min(map_width * tile_size - cv_width, Math.max(0, player_x - (cv_width / 2)));
+    camera_y = Math.min(map_height * tile_size - cv_height, Math.max(0, player_y - (cv_height / 2)));
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -318,12 +374,12 @@ function loop()
     for (var y = 0; y < map_height; y++) {
         for (var x = 0; x < map_width; x++) {
             if (map[y][x] == '#') {
-                ctx.drawImage(tile, x * tile_size, y * tile_size, tile_size, tile_size);
+                ctx.drawImage(tile, x * tile_size - camera_x, y * tile_size - camera_y, tile_size, tile_size);
             }
         }
     }
 
-    ctx.drawImage(images["obama.png"], player_x, player_y, player_size, player_size);
+    ctx.drawImage(images["obama.png"], player_x - camera_x, player_y - camera_y, player_size, player_size);
 }
 
 

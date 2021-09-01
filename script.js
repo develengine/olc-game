@@ -181,7 +181,7 @@ var map = [
 
 var map_width = map[0].length;
 var map_height = map.length;
-var tile_size = 64;
+const tile_size = 64;
 
 
 function is_solid(ch)
@@ -226,30 +226,28 @@ function axis_clip(map, vb, a, b, s1, s2, vertical)
 }
 
 
+const player_size = 48;
 var player_x = 0;
 var player_y = 0;
-var player_size = 48;
-var player_speed = 0.5;
 var velocity_x = 0;
 var velocity_y = 0;
 
-var player_acc = 0.75;
-var gravity = 1;
-var x_drag = 0.95;
-var jump_vel = 17.5;
-var jump_acc = 1.25;
-var max_fall_speed = 14;
+const player_acc = 0.75;
+const gravity = 1;
+const x_drag = 0.95;
+const jump_vel = 17.25;
+const jump_acc = 1.25;
+const max_fall_speed = 14;
+const ground_tolerance = 0;
+const sps = 1000;
+const tps = 60.5; // don't worry about it
+const period = sps / tps;
 
-var jump = false;
-var ground_tolerance = 0;
-
-var sps = 1000;
-var tps = 60.5; // don't worry about it
-var period = sps / tps;
 var elapsed = period / 2;
 
 var camera_x = 0;
 var camera_y = 0;
+const camera_drag = 0.1;
 
 
 function is_on_ground()
@@ -264,7 +262,6 @@ function is_on_ground()
 
 function jump_up()
 {
-    // jump = is_on_ground();
     if (is_on_ground()) {
         velocity_y = -jump_vel;
         velocity_x *= jump_acc;
@@ -317,14 +314,6 @@ function loop()
         velocity_y += gravity;
         velocity_y = Math.min(velocity_y, max_fall_speed);
 
-        /*
-        if (jump) {
-            velocity_y = -jump_vel;
-            velocity_x *= jump_acc;
-            jump = false;
-        }
-        */
-
         var rounded = parseInt(velocity_y);
         var clipped = axis_clip(map, rounded, player_x, player_y, player_size, player_size, true);
         player_y += clipped;
@@ -365,14 +354,20 @@ function loop()
     debug5.textContent = 'X: ' + velocity_x.toString() + ', Y: ' + velocity_y.toString();
     debug2.textContent = "Pos: " + player_x + ", " + player_y;
 
-    camera_x = Math.min(map_width * tile_size - cv_width, Math.max(0, player_x - (cv_width / 2)));
-    camera_y = Math.min(map_height * tile_size - cv_height, Math.max(0, player_y - (cv_height / 2)));
+    var cam_x = Math.min(map_width * tile_size - cv_width, Math.max(0, player_x - (cv_width / 2)));
+    var cam_y = Math.min(map_height * tile_size - cv_height, Math.max(0, player_y - (cv_height / 2)));
+    camera_x = camera_x + (cam_x - camera_x) * camera_drag;
+    camera_y = camera_y + (cam_y - camera_y) * camera_drag;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     var tile = images["patrick.jpg"];
-    for (var y = 0; y < map_height; y++) {
-        for (var x = 0; x < map_width; x++) {
+    var start_x = div(parseInt(camera_x), tile_size);
+    var start_y = div(parseInt(camera_y), tile_size);
+    var end_x = Math.min(map_width, div(parseInt(camera_x) + cv_width, tile_size) + 1);
+    var end_y = Math.min(map_height, div(parseInt(camera_y) + cv_height, tile_size) + 1);
+    for (var y = start_y; y < end_y; y++) {
+        for (var x = start_x; x < end_x; x++) {
             if (map[y][x] == '#') {
                 ctx.drawImage(tile, x * tile_size - camera_x, y * tile_size - camera_y, tile_size, tile_size);
             }

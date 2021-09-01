@@ -95,7 +95,7 @@ canvas.addEventListener("wheel", function(e) {
 
 
 var images = { };
-var to_load_images = [ "obama.png", "patrick.jpg", "concrete.jpg" ];
+var to_load_images = [ "obama.png", "patrick.jpg", "concrete.jpg", "spikes.jpg" ];
 var loaded_imgs = 0;
 
 
@@ -173,7 +173,7 @@ var map = [
     "#           #                            ",
     " #         #                             ",
     "          ##                             ",
-    " P                                       ",
+    " P                 W                     ",
     "####  ###################################",
     "####  ###################################"
 ];
@@ -186,7 +186,7 @@ const tile_size = 64;
 
 function is_solid(ch)
 {
-    return ch == '#';
+    return ch == '#' || ch == 'W';
 }
 
 
@@ -203,6 +203,10 @@ function axis_clip(map, vb, a, b, s1, s2, vertical)
     var b_next_div = div(b_next, tile_size);
     var b_dir = vb < 0 ? -1 : 1;
 
+    if (div_a >= map_a) {
+        return vb;
+    }
+
     function cant_move(i)
     {
         if (vertical) {
@@ -212,6 +216,9 @@ function axis_clip(map, vb, a, b, s1, s2, vertical)
     }
 
     for (var i = b_pos_div + b_dir; i != b_next_div + b_dir; i += b_dir) {
+        if (i < 0 || i >= map_b) {
+            return vb;
+        }
         if (cant_move(i)) {
             if (b_dir == -1) {
                 b_next = (i + 1) * tile_size;
@@ -227,6 +234,8 @@ function axis_clip(map, vb, a, b, s1, s2, vertical)
 
 
 const player_size = 48;
+var player_origin_x = 0;
+var player_origin_y = 0;
 var player_x = 0;
 var player_y = 0;
 var velocity_x = 0;
@@ -240,7 +249,7 @@ const jump_acc = 1.25;
 const max_fall_speed = 14;
 const ground_tolerance = 0;
 const sps = 1000;
-const tps = 60.5; // don't worry about it
+const tps = 61; // don't worry about it
 const period = sps / tps;
 
 var elapsed = period / 2;
@@ -256,7 +265,19 @@ function is_on_ground()
     var x2 = div(player_x + player_size - 1, tile_size);
     var y = div(player_y + player_size + ground_tolerance, tile_size);
 
-    return is_solid(map[y][x1]) || is_solid(map[y][x2]);
+    if (y < 0 || y >= map_height) {
+        return false;
+    }
+
+    if (x1 > 0 && x1 < map_width && is_solid(map[y][x1])) {
+        return true;
+    }
+
+    if (x2 > 0 && x2 < map_width && is_solid(map[y][x2])) {
+        return true;
+    }
+
+    return false;
 }
 
 
@@ -275,12 +296,34 @@ const DIR_LEFT  = 2;
 const DIR_RIGHT = 3;
 
 
+function kill_player()
+{
+    player_x = player_origin_x;
+    player_y = player_origin_y;
+    velocity_x = 0;
+    velocity_y = 0;
+}
+
+
 function bump(x, y, dir, v)
 {
+    if (x < 0 || x >= map_width || y < 0 || y >= map_height) {
+        return;
+    }
+
     debug3.textContent = "Bump: " + x + ", " + y + "; "
                        + map[y][x] + "; "
                        + v.toString() + "; "
                        + dir.toString();
+    switch (map[y][x]) {
+        case 'W':
+            if (dir == DIR_DOWN) {
+                kill_player();
+            }
+            break;
+        default:
+            break;
+    }
 }
 
 
@@ -359,17 +402,30 @@ function loop()
     camera_x = camera_x + (cam_x - camera_x) * camera_drag;
     camera_y = camera_y + (cam_y - camera_y) * camera_drag;
 
+    if (player_y - player_size > map_height * tile_size) {
+        kill_player();
+    }
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     var tile = images["concrete.jpg"];
+    var spikes = images["spikes.jpg"];
+
     var start_x = div(parseInt(camera_x), tile_size);
     var start_y = div(parseInt(camera_y), tile_size);
     var end_x = Math.min(map_width, div(parseInt(camera_x) + cv_width, tile_size) + 1);
     var end_y = Math.min(map_height, div(parseInt(camera_y) + cv_height, tile_size) + 1);
     for (var y = start_y; y < end_y; y++) {
         for (var x = start_x; x < end_x; x++) {
-            if (map[y][x] == '#') {
-                ctx.drawImage(tile, x * tile_size - camera_x, y * tile_size - camera_y, tile_size, tile_size);
+            switch (map[y][x]) {
+                case '#':
+                    ctx.drawImage(tile, x * tile_size - camera_x, y * tile_size - camera_y, tile_size, tile_size);
+                    break;
+                case 'W':
+                    ctx.drawImage(spikes, x * tile_size - camera_x, y * tile_size - camera_y, tile_size, tile_size);
+                    break;
+                default:
+                    break;
             }
         }
     }
@@ -392,6 +448,8 @@ function main()
             if (map[y][x] == 'P') {
                 player_x = x * tile_size;
                 player_y = y * tile_size + tile_size - player_size;
+                player_origin_x = player_x;
+                player_origin_y = player_y;
             }
         }
     }

@@ -95,7 +95,7 @@ canvas.addEventListener("wheel", function(e) {
 
 
 var images = { };
-var to_load_images = [ "obama.png", "patrick.jpg", "concrete.jpg", "spikes.jpg" ];
+var to_load_images = [ "obama.png", "ladder.png", "concrete.jpg", "spikes.jpg" ];
 var loaded_imgs = 0;
 
 
@@ -160,20 +160,21 @@ function play_noise()
 var is_played = false;
 
 var map = [
-    "# #                                      ",
     "                                         ",
-    "###                                      ",
-    "  #                                      ",
-    "                                         ",
-    "                                         ",
-    "                                         ",
-    "                                         ",
-    "#                                        ",
-    "#           ###                          ",
-    "#           #                            ",
-    " #         #                             ",
-    "          ##                             ",
-    " P                 W                     ",
+    "# # #################    ################",
+    "                        #                ",
+    "###                   #                  ",
+    "  #                           H          ",
+    "                     #########H##        ",
+    "                   #          H          ",
+    "                              H          ",
+    "                  #         ########H##  ",
+    "#               #                   H    ",
+    "#           ###                     H    ",
+    "#           #                       H    ",
+    " #         #                        H    ",
+    "          ##                        H    ",
+    " P                 W W  W           H    ",
     "####  ###################################",
     "####  ###################################"
 ];
@@ -203,7 +204,7 @@ function axis_clip(map, vb, a, b, s1, s2, vertical)
     var b_next_div = div(b_next, tile_size);
     var b_dir = vb < 0 ? -1 : 1;
 
-    if (div_a >= map_a) {
+    if (div_a < 0 || div_a >= map_a) {
         return vb;
     }
 
@@ -241,6 +242,7 @@ var player_y = 0;
 var velocity_x = 0;
 var velocity_y = 0;
 
+const ladder_boost = 5;
 const player_acc = 0.75;
 const gravity = 1;
 const x_drag = 0.95;
@@ -257,6 +259,12 @@ var elapsed = period / 2;
 var camera_x = 0;
 var camera_y = 0;
 const camera_drag = 0.1;
+
+
+function is_on_map(x, y)
+{
+    return x > 0 && x < map_width && y > 0 && y < map_height;
+}
 
 
 function is_on_ground()
@@ -305,6 +313,30 @@ function kill_player()
 }
 
 
+function is_on(ch)
+{
+    var x1 = div(player_x, tile_size);
+    var x2 = div(player_x + player_size - 1, tile_size);
+    var y1 = div(player_y, tile_size);
+    var y2 = div(player_y + player_size - 1, tile_size);
+
+    if (is_on_map(x1, y1) && map[y1][x1] == ch) {
+        return true;
+    }
+    if (is_on_map(x2, y1) && map[y1][x2] == ch) {
+        return true;
+    }
+    if (is_on_map(x1, y2) && map[y2][x1] == ch) {
+        return true;
+    }
+    if (is_on_map(x2, y2) && map[y2][x2] == ch) {
+        return true;
+    }
+
+    return false;
+}
+
+
 function bump(x, y, dir, v)
 {
     if (x < 0 || x >= map_width || y < 0 || y >= map_height) {
@@ -333,15 +365,21 @@ function loop()
     var delta_time = timing();
     elapsed += delta_time;
 
+    if (key_states['p'] && !is_played) {
+        // play_sound("rap.ogg");
+        play_noise();
+        is_played = true;
+    } else if (!key_states['p'] && is_played) {
+        is_played = false;
+    }
+
     while (elapsed > period) {
         elapsed -= period;
 
-        if (key_states['p'] && !is_played) {
-            // play_sound("rap.ogg");
-            play_noise();
-            is_played = true;
-        } else if (!key_states['p'] && is_played) {
-            is_played = false;
+        var is_on_ladder = is_on('H');
+        if (is_on_ladder) {
+            velocity_x = 0;
+            velocity_y = 0;
         }
 
         if (key_states['ArrowRight']) {
@@ -351,10 +389,24 @@ function loop()
             velocity_x -= player_acc;
         }
 
-        velocity_x *= x_drag;
+        if (is_on_ladder && key_states['ArrowUp']) {
+            velocity_y -= player_acc;
+        }
+        if (is_on_ladder && key_states['ArrowDown']) {
+            velocity_y += player_acc;
+        }
+
+        if (!is_on_ladder) {
+            velocity_x *= x_drag;
+        } else {
+            velocity_x *= ladder_boost;
+            velocity_y *= ladder_boost;
+        }
         velocity_x = cap_off(velocity_x);
 
-        velocity_y += gravity;
+        if (!is_on_ladder) {
+            velocity_y += gravity;
+        }
         velocity_y = Math.min(velocity_y, max_fall_speed);
 
         var rounded = parseInt(velocity_y);
@@ -402,14 +454,15 @@ function loop()
     camera_x = camera_x + (cam_x - camera_x) * camera_drag;
     camera_y = camera_y + (cam_y - camera_y) * camera_drag;
 
-    if (player_y - player_size > map_height * tile_size) {
+    if (player_y + player_size > map_height * tile_size) {
         kill_player();
     }
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    var tile = images["concrete.jpg"];
-    var spikes = images["spikes.jpg"];
+    var tile_img = images["concrete.jpg"];
+    var spikes_img = images["spikes.jpg"];
+    var ladder_img = images["ladder.png"];
 
     var start_x = div(parseInt(camera_x), tile_size);
     var start_y = div(parseInt(camera_y), tile_size);
@@ -419,10 +472,13 @@ function loop()
         for (var x = start_x; x < end_x; x++) {
             switch (map[y][x]) {
                 case '#':
-                    ctx.drawImage(tile, x * tile_size - camera_x, y * tile_size - camera_y, tile_size, tile_size);
+                    ctx.drawImage(tile_img, x * tile_size - camera_x, y * tile_size - camera_y, tile_size, tile_size);
                     break;
                 case 'W':
-                    ctx.drawImage(spikes, x * tile_size - camera_x, y * tile_size - camera_y, tile_size, tile_size);
+                    ctx.drawImage(spikes_img, x * tile_size - camera_x, y * tile_size - camera_y, tile_size, tile_size);
+                    break;
+                case 'H':
+                    ctx.drawImage(ladder_img, x * tile_size - camera_x, y * tile_size - camera_y, tile_size, tile_size);
                     break;
                 default:
                     break;

@@ -90,12 +90,16 @@ canvas.addEventListener('mouseup', function(e)
 
 canvas.addEventListener("wheel", function(e) {
     e.preventDefault();
-    debug4.textContent = "Wheel: " + e.deltaY;
+    // debug4.textContent = "Wheel: " + e.deltaY;
 });
 
 
 var images = { };
-var to_load_images = [ "obama.png", "ladder.png", "concrete.jpg", "spikes.jpg" ];
+var to_load_images = [
+    "obama.png", "concrete.jpg", "spikes.jpg",
+    "ladder.png", "cracked_ladder.jpg", "breaking_ladder.jpg", "broken_ladder.png",
+    "cracked.png", "crumbling.png", "falling.png",
+];
 var loaded_imgs = 0;
 
 
@@ -159,19 +163,19 @@ function play_noise()
 
 var is_played = false;
 
-var map = [
-    "                                         ",
+var map_schematic = [
+    "          #                              ",
     "# # #################    ################",
     "                        #                ",
-    "###                   #                  ",
+    "###XXXX#              #                  ",
     "  #                           H          ",
-    "                     #########H##        ",
-    "                   #          H          ",
+    "                     #########H##F       ",
+    "                   #          H  F       ",
     "                              H          ",
     "                  #         ########H##  ",
     "#               #                   H    ",
     "#           ###                     H    ",
-    "#           #                       H    ",
+    "#           #                       F    ",
     " #         #                        H    ",
     "          ##                        H    ",
     " P                 W W  W           H    ",
@@ -180,14 +184,16 @@ var map = [
 ];
 
 
-var map_width = map[0].length;
-var map_height = map.length;
+var map = [];
+
+var map_width = 0;
+var map_height = 0;
 const tile_size = 64;
 
 
 function is_solid(ch)
 {
-    return ch == '#' || ch == 'W';
+    return ch == '#' || ch == 'W' || ch == 'X' || ch == 'K';
 }
 
 
@@ -253,6 +259,8 @@ const ground_tolerance = 0;
 const sps = 1000;
 const tps = 61; // don't worry about it
 const period = sps / tps;
+const ladder_ttl = parseInt(tps * 1.5);
+const crumbling_ttl = parseInt(tps * 0.5);
 
 var elapsed = period / 2;
 
@@ -298,12 +306,6 @@ function jump_up()
 }
 
 
-const DIR_UP    = 0;
-const DIR_DOWN  = 1;
-const DIR_LEFT  = 2;
-const DIR_RIGHT = 3;
-
-
 function kill_player()
 {
     player_x = player_origin_x;
@@ -311,6 +313,12 @@ function kill_player()
     velocity_x = 0;
     velocity_y = 0;
 }
+
+
+const DIR_UP    = 0;
+const DIR_DOWN  = 1;
+const DIR_LEFT  = 2;
+const DIR_RIGHT = 3;
 
 
 function is_on(ch)
@@ -337,6 +345,13 @@ function is_on(ch)
 }
 
 
+var breaking_ladders = [];
+var is_on_broken_ladder = false;
+var is_on_a_ladder = false;
+
+var crumbling = [];
+
+
 function bump(x, y, dir, v)
 {
     if (x < 0 || x >= map_width || y < 0 || y >= map_height) {
@@ -347,14 +362,89 @@ function bump(x, y, dir, v)
                        + map[y][x] + "; "
                        + v.toString() + "; "
                        + dir.toString();
+
     switch (map[y][x]) {
         case 'W':
             if (dir == DIR_DOWN) {
                 kill_player();
             }
             break;
+        case 'X':
+            if (dir == DIR_DOWN) {
+                map[y][x] = 'K';
+                crumbling.push({
+                    'x': x,
+                    'y': y,
+                    ttl: crumbling_ttl
+                });
+            }
+            break;
         default:
             break;
+    }
+}
+
+
+function over_update(ch, x, y)
+{
+    if (is_solid(ch)) {
+        kill_player();
+    }
+
+    switch (ch) 
+    {
+        case 'H':
+            is_on_a_ladder = true;
+            break;
+        case 'F':
+            breaking_ladders.push({
+                'x': x,
+                'y': y,
+                ttl: ladder_ttl
+            });
+            map[y][x] = 'T';
+            is_on_a_ladder = true;
+            break;
+        case 'T':
+            is_on_a_ladder = true;
+            break;
+        case 'O':
+            is_on_broken_ladder = true;
+            break;
+        default:
+            break;
+    }
+}
+
+
+function in_update(ch, x, y)
+{
+    
+}
+
+
+function over_in_handler()
+{
+    var x1 = div(player_x, tile_size);
+    var x2 = div(player_x + player_size - 1, tile_size);
+    var y1 = div(player_y, tile_size);
+    var y2 = div(player_y + player_size - 1, tile_size);
+
+    if (is_on_map(x1, y1)) {
+        over_update(map[y1][x1], x1, y1);
+    }
+    if (is_on_map(x2, y1)) {
+        over_update(map[y1][x2], x2, y1);
+    }
+    if (is_on_map(x1, y2)) {
+        over_update(map[y2][x1], x1, y2);
+    }
+    if (is_on_map(x2, y2)) {
+        over_update(map[y2][x2], x2, y2);
+    }
+
+    if (is_on_map(x1, y1) && x1 == x2 && y1 == y2) {
+        in_update(map[y1][x1], x1, y1);
     }
 }
 
@@ -376,7 +466,10 @@ function loop()
     while (elapsed > period) {
         elapsed -= period;
 
-        var is_on_ladder = is_on('H');
+        is_on_a_ladder = false;
+        is_on_broken_ladder = false;
+
+        var is_on_ladder = is_on('H') || is_on('F') || is_on('T');
         if (is_on_ladder) {
             velocity_x = 0;
             velocity_y = 0;
@@ -444,13 +537,42 @@ function loop()
 
             velocity_x = 0;
         }
+
+        for (var i = 0; i < breaking_ladders.length; i++) {
+            breaking_ladders[i].ttl--;
+
+            var element = breaking_ladders[i];
+            if (element.ttl <= 0) {
+                map[element.y][element.x] = 'O';
+            }
+        }
+        breaking_ladders = breaking_ladders.filter(a => a.ttl > 0);
+
+        for (var i = 0; i < crumbling.length; i++) {
+            crumbling[i].ttl--;
+
+            var element = crumbling[i];
+            if (element.ttl <= 0) {
+                map[element.y][element.x] = ' ';
+            }
+        }
+        crumbling = crumbling.filter(a => a.ttl > 0);
+
+        over_in_handler();
+
+        if (is_on_broken_ladder && !is_on_a_ladder) {
+            kill_player();
+        }
     }
+
 
     debug5.textContent = 'X: ' + velocity_x.toString() + ', Y: ' + velocity_y.toString();
     debug2.textContent = "Pos: " + player_x + ", " + player_y;
+    debug4.textContent = "Ladders: " + breaking_ladders.length.toString();
 
-    var cam_x = Math.min(map_width * tile_size - cv_width, Math.max(0, player_x - (cv_width / 2)));
-    var cam_y = Math.min(map_height * tile_size - cv_height, Math.max(0, player_y - (cv_height / 2)));
+
+    var cam_x = Math.min(map_width * tile_size - cv_width, Math.max(0, player_x - ((cv_width - player_size) / 2)));
+    var cam_y = Math.min(map_height * tile_size - cv_height, Math.max(0, player_y - ((cv_height - player_size) / 2)));
     camera_x = camera_x + (cam_x - camera_x) * camera_drag;
     camera_y = camera_y + (cam_y - camera_y) * camera_drag;
 
@@ -458,11 +580,18 @@ function loop()
         kill_player();
     }
 
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     var tile_img = images["concrete.jpg"];
     var spikes_img = images["spikes.jpg"];
     var ladder_img = images["ladder.png"];
+    var cracked_ladder_img = images["cracked_ladder.jpg"];
+    var breaking_ladder_img = images["breaking_ladder.jpg"];
+    var broken_ladder_img = images["broken_ladder.png"];
+    var cracked_img = images["cracked.png"];
+    var crumbling_img = images["crumbling.png"];
+    // var falling_img = images["falling.png"];
 
     var start_x = div(parseInt(camera_x), tile_size);
     var start_y = div(parseInt(camera_y), tile_size);
@@ -479,6 +608,21 @@ function loop()
                     break;
                 case 'H':
                     ctx.drawImage(ladder_img, x * tile_size - camera_x, y * tile_size - camera_y, tile_size, tile_size);
+                    break;
+                case 'F':
+                    ctx.drawImage(cracked_ladder_img, x * tile_size - camera_x, y * tile_size - camera_y, tile_size, tile_size);
+                    break;
+                case 'T':
+                    ctx.drawImage(breaking_ladder_img, x * tile_size - camera_x, y * tile_size - camera_y, tile_size, tile_size);
+                    break;
+                case 'O':
+                    ctx.drawImage(broken_ladder_img, x * tile_size - camera_x, y * tile_size - camera_y, tile_size, tile_size);
+                    break;
+                case 'X':
+                    ctx.drawImage(cracked_img, x * tile_size - camera_x, y * tile_size - camera_y, tile_size, tile_size);
+                    break;
+                case 'K':
+                    ctx.drawImage(crumbling_img, x * tile_size - camera_x, y * tile_size - camera_y, tile_size, tile_size);
                     break;
                 default:
                     break;
@@ -499,15 +643,25 @@ function main()
         }
     }
 
+    map_width = map_schematic[0].length;
+    map_height = map_schematic.length;
+
     for (var y = 0; y < map_height; y++) {
+        var row = [];
+
         for (var x = 0; x < map_width; x++) {
-            if (map[y][x] == 'P') {
+            var ch = map_schematic[y][x];
+            row.push(ch);
+
+            if (ch == 'P') {
                 player_x = x * tile_size;
                 player_y = y * tile_size + tile_size - player_size;
                 player_origin_x = player_x;
                 player_origin_y = player_y;
             }
         }
+
+        map.push(row);
     }
 
     loop();

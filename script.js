@@ -165,10 +165,10 @@ var is_played = false;
 
 var map_schematic = [
     "          #                              ",
-    "# # #################    ################",
-    "                        #                ",
-    "###XXXX#              #                  ",
-    "  #                           H          ",
+    "# # #################    ########F#######",
+    " P                      #        F       ",
+    "###XXXX#              #          F       ",
+    "  #                           H  F       ",
     "                     #########H##F       ",
     "                   #          H  F       ",
     "                              H          ",
@@ -178,7 +178,7 @@ var map_schematic = [
     "#           #                       F    ",
     " #         #                        H    ",
     "          ##                        H    ",
-    " P                 W W  W           H    ",
+    "                   W W  W           H    ",
     "####  ###################################",
     "####  ###################################"
 ];
@@ -261,6 +261,7 @@ const tps = 61; // don't worry about it
 const period = sps / tps;
 const ladder_ttl = parseInt(tps * 1.5);
 const crumbling_ttl = parseInt(tps * 0.5);
+const faller_speed = 10;
 
 var elapsed = period / 2;
 
@@ -347,9 +348,10 @@ function is_on(ch)
 
 var breaking_ladders = [];
 var is_on_broken_ladder = false;
-var is_on_a_ladder = false;
+var is_on_ok_ladder = false;
 
 var crumbling = [];
+var falling = [];
 
 
 function bump(x, y, dir, v)
@@ -394,7 +396,7 @@ function over_update(ch, x, y)
     switch (ch) 
     {
         case 'H':
-            is_on_a_ladder = true;
+            is_on_ok_ladder = true;
             break;
         case 'F':
             breaking_ladders.push({
@@ -403,10 +405,10 @@ function over_update(ch, x, y)
                 ttl: ladder_ttl
             });
             map[y][x] = 'T';
-            is_on_a_ladder = true;
+            is_on_ok_ladder = true;
             break;
         case 'T':
-            is_on_a_ladder = true;
+            is_on_ok_ladder = true;
             break;
         case 'O':
             is_on_broken_ladder = true;
@@ -417,13 +419,7 @@ function over_update(ch, x, y)
 }
 
 
-function in_update(ch, x, y)
-{
-    
-}
-
-
-function over_in_handler()
+function over_handler()
 {
     var x1 = div(player_x, tile_size);
     var x2 = div(player_x + player_size - 1, tile_size);
@@ -441,10 +437,6 @@ function over_in_handler()
     }
     if (is_on_map(x2, y2)) {
         over_update(map[y2][x2], x2, y2);
-    }
-
-    if (is_on_map(x1, y1) && x1 == x2 && y1 == y2) {
-        in_update(map[y1][x1], x1, y1);
     }
 }
 
@@ -466,7 +458,7 @@ function loop()
     while (elapsed > period) {
         elapsed -= period;
 
-        is_on_a_ladder = false;
+        is_on_ok_ladder = false;
         is_on_broken_ladder = false;
 
         var is_on_ladder = is_on('H') || is_on('F') || is_on('T');
@@ -554,13 +546,22 @@ function loop()
             var element = crumbling[i];
             if (element.ttl <= 0) {
                 map[element.y][element.x] = ' ';
+                falling.push({
+                    'x': element.x * tile_size,
+                    'y': element.y * tile_size
+                });
             }
         }
         crumbling = crumbling.filter(a => a.ttl > 0);
 
-        over_in_handler();
+        for (var i = 0; i < falling.length; i++) {
+            falling[i].y += faller_speed;
+        }
+        falling = falling.filter(a => a.y < map_height * tile_size);
 
-        if (is_on_broken_ladder && !is_on_a_ladder) {
+        over_handler();
+
+        if (is_on_broken_ladder && !is_on_ok_ladder) {
             kill_player();
         }
     }
@@ -568,7 +569,7 @@ function loop()
 
     debug5.textContent = 'X: ' + velocity_x.toString() + ', Y: ' + velocity_y.toString();
     debug2.textContent = "Pos: " + player_x + ", " + player_y;
-    debug4.textContent = "Ladders: " + breaking_ladders.length.toString();
+    debug4.textContent = "Fallers: " + falling.length.toString();
 
 
     var cam_x = Math.min(map_width * tile_size - cv_width, Math.max(0, player_x - ((cv_width - player_size) / 2)));
@@ -591,7 +592,6 @@ function loop()
     var broken_ladder_img = images["broken_ladder.png"];
     var cracked_img = images["cracked.png"];
     var crumbling_img = images["crumbling.png"];
-    // var falling_img = images["falling.png"];
 
     var start_x = div(parseInt(camera_x), tile_size);
     var start_y = div(parseInt(camera_y), tile_size);
@@ -628,6 +628,12 @@ function loop()
                     break;
             }
         }
+    }
+
+    var falling_img = images["falling.png"];
+    for (var i = 0; i < falling.length; i++) {
+        var element = falling[i];
+        ctx.drawImage(falling_img, element.x - camera_x, element.y - camera_y, tile_size, tile_size);
     }
 
     ctx.drawImage(images["obama.png"], player_x - camera_x, player_y - camera_y, player_size, player_size);

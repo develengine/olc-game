@@ -197,6 +197,12 @@ function is_solid(ch)
 }
 
 
+function intersects(x1, y1, s1, x2, y2, s2)
+{
+    return ((x1 < x2 + s2) != (x1 + s1 < x2)) && ((y1 < y2 + s2) != (y1 + s1 < y2));
+}
+
+
 function axis_clip(map, vb, a, b, s1, s2, vertical)
 {
     var map_a = vertical ? map[0].length : map.length;
@@ -556,12 +562,17 @@ function loop()
 
         for (var i = 0; i < falling.length; i++) {
             falling[i].y += faller_speed;
+
+            var element = falling[i];
+            if (intersects(player_x, player_y, player_size, element.x, element.y, tile_size)) {
+                kill_player();
+            }
         }
         falling = falling.filter(a => a.y < map_height * tile_size);
 
         over_handler();
 
-        if (is_on_broken_ladder && !is_on_ok_ladder) {
+        if (is_on_broken_ladder && !is_on_ok_ladder && !is_on_ground()) {
             kill_player();
         }
     }

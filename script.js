@@ -96,7 +96,8 @@ canvas.addEventListener("wheel", function(e) {
 
 var images = { };
 var to_load_images = [
-    "obama.png", "concrete.jpg", "spikes.jpg",
+    "obama.png", "concrete.jpg", "test.png",
+    "spikes.jpg", "spikes_down.jpg", "spikes_right.jpg", "spikes_left.jpg",
     "ladder.png", "cracked_ladder.jpg", "breaking_ladder.jpg", "broken_ladder.png",
     "cracked.png", "crumbling.png", "falling.png",
     "control_red.png", "control_blue.png", "full_red.png", "full_blue.png", "empty_red.png", "empty_blue.png",
@@ -169,17 +170,17 @@ var map_schematic = [
     "# # #################    ########F#######",
     " P                      #        F       ",
     "###XXXX#              #          F       ",
-    "  #                           H  F       ",
+    "  #                      E    H  F       ",
     "                     #########H##F       ",
     "                   #          H  F       ",
     "                              H          ",
-    "                  #         ########H##  ",
-    "#               #                   H    ",
-    "#           ###                     H    ",
-    "#           #                       F    ",
+    "                  #       XX########H##  ",
+    "#               #      M            H    ",
+    "#           ###       3 E           H    ",
+    "#           #          W            F    ",
     " #         #                        H    ",
-    "          ##                  bbC RRH    ",
-    "                   W W  W           H    ",
+    "          ##   W           C  bbC RRH    ",
+    "             3       M  M  b        H    ",
     "####  ###################################",
     "####  ###################################"
 ];
@@ -194,7 +195,7 @@ const tile_size = 64;
 
 function is_solid(ch)
 {
-    return '#WXKCcRB'.includes(ch);
+    return '#MW3EXKCcRB'.includes(ch);
 }
 
 
@@ -375,8 +376,23 @@ function bump(x, y, dir, v)
                        + dir.toString();
 
     switch (map[y][x]) {
-        case 'W':
+        case 'M':
             if (dir == DIR_DOWN) {
+                kill_player();
+            }
+            break;
+        case 'W':
+            if (dir == DIR_UP) {
+                kill_player();
+            }
+            break;
+        case 'E':
+            if (dir == DIR_LEFT) {
+                kill_player();
+            }
+            break;
+        case '3':
+            if (dir == DIR_RIGHT) {
                 kill_player();
             }
             break;
@@ -616,20 +632,26 @@ function loop()
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    var tile_img = images["concrete.jpg"];
-    var spikes_img = images["spikes.jpg"];
-    var ladder_img = images["ladder.png"];
-    var cracked_ladder_img = images["cracked_ladder.jpg"];
-    var breaking_ladder_img = images["breaking_ladder.jpg"];
-    var broken_ladder_img = images["broken_ladder.png"];
-    var cracked_img = images["cracked.png"];
-    var crumbling_img = images["crumbling.png"];
-    var control_red_img = images["control_red.png"];
-    var control_blue_img = images["control_blue.png"];
-    var full_red_img = images["full_red.png"];
-    var full_blue_img = images["full_blue.png"];
-    var empty_red_img = images["empty_red.png"];
-    var empty_blue_img = images["empty_blue.png"];
+    var textures = {
+        '#': images["concrete.jpg"],
+        'M': images["spikes.jpg"],
+        'W': images["spikes_down.jpg"],
+        'E': images["spikes_right.jpg"],
+        '3': images["spikes_left.jpg"],
+        'H': images["ladder.png"],
+        'F': images["cracked_ladder.jpg"],
+        'T': images["breaking_ladder.jpg"],
+        'O': images["broken_ladder.png"],
+        'X': images["cracked.png"],
+        'K': images["crumbling.png"],
+        'C': images["control_red.png"],
+        'c': images["control_blue.png"],
+        'R': images["full_red.png"],
+        'B': images["full_blue.png"],
+        'r': images["empty_red.png"],
+        'b': images["empty_blue.png"]
+    };
+    var unknown_img = images["test.png"];
 
     var start_x = div(parseInt(camera_x), tile_size);
     var start_y = div(parseInt(camera_y), tile_size);
@@ -637,51 +659,16 @@ function loop()
     var end_y = Math.min(map_height, div(parseInt(camera_y) + cv_height, tile_size) + 1);
     for (var y = start_y; y < end_y; y++) {
         for (var x = start_x; x < end_x; x++) {
-            switch (map[y][x]) {
-                case '#':
-                    ctx.drawImage(tile_img, x * tile_size - camera_x, y * tile_size - camera_y, tile_size, tile_size);
-                    break;
-                case 'W':
-                    ctx.drawImage(spikes_img, x * tile_size - camera_x, y * tile_size - camera_y, tile_size, tile_size);
-                    break;
-                case 'H':
-                    ctx.drawImage(ladder_img, x * tile_size - camera_x, y * tile_size - camera_y, tile_size, tile_size);
-                    break;
-                case 'F':
-                    ctx.drawImage(cracked_ladder_img, x * tile_size - camera_x, y * tile_size - camera_y, tile_size, tile_size);
-                    break;
-                case 'T':
-                    ctx.drawImage(breaking_ladder_img, x * tile_size - camera_x, y * tile_size - camera_y, tile_size, tile_size);
-                    break;
-                case 'O':
-                    ctx.drawImage(broken_ladder_img, x * tile_size - camera_x, y * tile_size - camera_y, tile_size, tile_size);
-                    break;
-                case 'X':
-                    ctx.drawImage(cracked_img, x * tile_size - camera_x, y * tile_size - camera_y, tile_size, tile_size);
-                    break;
-                case 'K':
-                    ctx.drawImage(crumbling_img, x * tile_size - camera_x, y * tile_size - camera_y, tile_size, tile_size);
-                    break;
-
-                case 'C':
-                    ctx.drawImage(control_red_img, x * tile_size - camera_x, y * tile_size - camera_y, tile_size, tile_size);
-                    break;
-                case 'c':
-                    ctx.drawImage(control_blue_img, x * tile_size - camera_x, y * tile_size - camera_y, tile_size, tile_size);
-                    break;
-                case 'R':
-                    ctx.drawImage(full_red_img, x * tile_size - camera_x, y * tile_size - camera_y, tile_size, tile_size);
-                    break;
-                case 'B':
-                    ctx.drawImage(full_blue_img, x * tile_size - camera_x, y * tile_size - camera_y, tile_size, tile_size);
-                    break;
-                case 'r':
-                    ctx.drawImage(empty_red_img, x * tile_size - camera_x, y * tile_size - camera_y, tile_size, tile_size);
-                    break;
-                case 'b':
-                    ctx.drawImage(empty_blue_img, x * tile_size - camera_x, y * tile_size - camera_y, tile_size, tile_size);
+            var ch = map[y][x];
+            switch (ch) {
+                case ' ':
                     break;
                 default:
+                    if (ch in textures) {
+                        ctx.drawImage(textures[ch], x * tile_size - camera_x, y * tile_size - camera_y, tile_size, tile_size);
+                    } else {
+                        ctx.drawImage(unknown_img, x * tile_size - camera_x, y * tile_size - camera_y, tile_size, tile_size);
+                    }
                     break;
             }
         }

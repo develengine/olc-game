@@ -102,7 +102,7 @@ canvas.addEventListener("wheel", function(e) {
 
 var images = { };
 var to_load_images = [
-    "obama.png", "concrete.jpg", "test.png",
+    "obama.png", "concrete.jpg", "test.png", "clone.jpg",
     "spikes.jpg", "spikes_down.jpg", "spikes_right.jpg", "spikes_left.jpg",
     "ladder.png", "cracked_ladder.jpg", "breaking_ladder.jpg", "broken_ladder.png",
     "cracked.png", "crumbling.png", "falling.png",
@@ -291,6 +291,10 @@ var timer_left = 0;
 
 var paused = true;
 
+var recording_buffer = [];
+var recordings = [];
+var tick_counter = 0;
+
 
 function pause_game()
 {
@@ -344,6 +348,7 @@ function kill_player()
     is_on_broken_ladder = false;
     is_on_ok_ladder = false;
     spawned = false;
+    recording_buffer = [];
     load_level();
 }
 
@@ -399,6 +404,7 @@ function load_level()
     map_width = map_schematic[0].length;
     map_height = map_schematic.length;
     timer_left = timer_time;
+    tick_counter = 0;
 
     for (var y = 0; y < map_height; y++) {
         var row = [];
@@ -517,6 +523,13 @@ function over_update(ch, x, y)
             break;
         case 'O':
             is_on_broken_ladder = true;
+            break;
+        case 'S':
+            if (recording_buffer.length > 0) {
+                recordings.push(recording_buffer.slice());
+                recording_buffer = [];
+                kill_player();
+            }
             break;
         default:
             break;
@@ -718,6 +731,14 @@ function draw_level()
         ctx.drawImage(falling_img, element.x - camera_x, element.y - camera_y, tile_size, tile_size);
     }
 
+    for (var i = 0; i < recordings.length; i++) {
+        var record = recordings[i];
+        var frame = record[Math.min(record.length - 1, tick_counter)];
+        if (frame.spawn) {
+            ctx.drawImage(images["clone.jpg"], frame.x - camera_x, frame.y - camera_y, player_size, player_size);
+        }
+    }
+
     if (spawned) {
         ctx.drawImage(images["obama.png"], player_x - camera_x, player_y - camera_y, player_size, player_size);
     }
@@ -776,13 +797,34 @@ function loop()
     while (elapsed > period) {
         elapsed -= period;
         if (!paused) {
+            recording_buffer.push({
+                x: player_x,
+                y: player_y,
+                red_blue: false,
+                ground: false,
+                spawn: spawned,
+                ladders: [],
+                blocks: []
+            });
+
             game_tick();
+
+            if (recording_buffer.length != 0) {
+                var last = recording_buffer.length - 1;
+                recording_buffer[last].x = player_x;
+                recording_buffer[last].y = player_y;
+                if (spawned) {
+                    recording_buffer[last].ground = is_on_ground();
+                }
+            }
+
+            ++tick_counter;
         }
     }
 
     debug5.textContent = 'X: ' + velocity_x.toString() + ', Y: ' + velocity_y.toString();
     debug2.textContent = "Pos: " + player_x + ", " + player_y;
-    debug4.textContent = "Fallers: " + falling.length.toString();
+    debug4.textContent = "Recordings: " + recordings.length.toString();
 
     var cam_x = Math.min(map_width * tile_size - cv_width, Math.max(0, player_x - ((cv_width - player_size) / 2)));
     var cam_y = Math.min(map_height * tile_size - cv_height, Math.max(0, player_y - ((cv_height - player_size) / 2)));

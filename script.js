@@ -99,6 +99,7 @@ var to_load_images = [
     "obama.png", "concrete.jpg", "spikes.jpg",
     "ladder.png", "cracked_ladder.jpg", "breaking_ladder.jpg", "broken_ladder.png",
     "cracked.png", "crumbling.png", "falling.png",
+    "control_red.png", "control_blue.png", "full_red.png", "full_blue.png", "empty_red.png", "empty_blue.png",
 ];
 var loaded_imgs = 0;
 
@@ -177,7 +178,7 @@ var map_schematic = [
     "#           ###                     H    ",
     "#           #                       F    ",
     " #         #                        H    ",
-    "          ##                        H    ",
+    "          ##                  bbC RRH    ",
     "                   W W  W           H    ",
     "####  ###################################",
     "####  ###################################"
@@ -193,7 +194,7 @@ const tile_size = 64;
 
 function is_solid(ch)
 {
-    return ch == '#' || ch == 'W' || ch == 'X' || ch == 'K';
+    return '#WXKCcRB'.includes(ch);
 }
 
 
@@ -359,6 +360,8 @@ var is_on_ok_ladder = false;
 var crumbling = [];
 var falling = [];
 
+var red_blue_blocks = [];
+
 
 function bump(x, y, dir, v)
 {
@@ -385,6 +388,24 @@ function bump(x, y, dir, v)
                     'y': y,
                     ttl: crumbling_ttl
                 });
+            }
+            break;
+        case 'C':
+        case 'c':
+            // break;
+            if (dir == DIR_UP) {
+                for (var i = 0; i < red_blue_blocks.length; i++) {
+                    var element = red_blue_blocks[i];
+                    var ch = map[element.y][element.x];
+
+                    if ('Cc'.includes(ch)) {
+                        map[element.y][element.x] = ch == 'C' ? 'c' : 'C';
+                    } else if ('Rr'.includes(ch)) {
+                        map[element.y][element.x] = ch == 'R' ? 'r' : 'R';
+                    } else if ('Bb'.includes(ch)) {
+                        map[element.y][element.x] = ch == 'B' ? 'b' : 'B';
+                    }
+                }
             }
             break;
         default:
@@ -603,6 +624,12 @@ function loop()
     var broken_ladder_img = images["broken_ladder.png"];
     var cracked_img = images["cracked.png"];
     var crumbling_img = images["crumbling.png"];
+    var control_red_img = images["control_red.png"];
+    var control_blue_img = images["control_blue.png"];
+    var full_red_img = images["full_red.png"];
+    var full_blue_img = images["full_blue.png"];
+    var empty_red_img = images["empty_red.png"];
+    var empty_blue_img = images["empty_blue.png"];
 
     var start_x = div(parseInt(camera_x), tile_size);
     var start_y = div(parseInt(camera_y), tile_size);
@@ -634,6 +661,25 @@ function loop()
                     break;
                 case 'K':
                     ctx.drawImage(crumbling_img, x * tile_size - camera_x, y * tile_size - camera_y, tile_size, tile_size);
+                    break;
+
+                case 'C':
+                    ctx.drawImage(control_red_img, x * tile_size - camera_x, y * tile_size - camera_y, tile_size, tile_size);
+                    break;
+                case 'c':
+                    ctx.drawImage(control_blue_img, x * tile_size - camera_x, y * tile_size - camera_y, tile_size, tile_size);
+                    break;
+                case 'R':
+                    ctx.drawImage(full_red_img, x * tile_size - camera_x, y * tile_size - camera_y, tile_size, tile_size);
+                    break;
+                case 'B':
+                    ctx.drawImage(full_blue_img, x * tile_size - camera_x, y * tile_size - camera_y, tile_size, tile_size);
+                    break;
+                case 'r':
+                    ctx.drawImage(empty_red_img, x * tile_size - camera_x, y * tile_size - camera_y, tile_size, tile_size);
+                    break;
+                case 'b':
+                    ctx.drawImage(empty_blue_img, x * tile_size - camera_x, y * tile_size - camera_y, tile_size, tile_size);
                     break;
                 default:
                     break;
@@ -675,6 +721,13 @@ function main()
                 player_y = y * tile_size + tile_size - player_size;
                 player_origin_x = player_x;
                 player_origin_y = player_y;
+            }
+
+            if ('cCrRbB'.includes(ch)) {
+                red_blue_blocks.push({
+                    'x': x,
+                    'y': y
+                });
             }
         }
 

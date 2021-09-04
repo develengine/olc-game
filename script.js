@@ -109,6 +109,7 @@ var to_load_images = [
     "control_red.png", "control_blue.png", "full_red.png", "full_blue.png", "empty_red.png", "empty_blue.png",
     "clock.png", "clock_collected.jpg",
     "num/0.png", "num/1.png", "num/2.png", "num/3.png", "num/4.png", "num/5.png", "num/6.png", "num/7.png", "num/8.png", "num/9.png",
+    "num2/0.png", "num2/1.png", "num2/2.png", "num2/3.png", "num2/4.png", "num2/5.png", "num2/6.png", "num2/7.png", "num2/8.png", "num2/9.png", "num2/slash.png",
 ];
 var loaded_imgs = 0;
 
@@ -302,6 +303,8 @@ var dying_left = 0;
 var vi_von = false;
 var bro_index = -1;
 
+var clock_count = 0;
+
 
 function pause_game()
 {
@@ -430,6 +433,7 @@ function load_level()
     map_height = map_schematic.length;
     timer_left = timer_time;
     tick_counter = 0;
+    clock_count = 0;
 
     for (var y = 0; y < map_height; y++) {
         var row = [];
@@ -443,6 +447,8 @@ function load_level()
                 player_y = y * tile_size + tile_size - player_size;
                 player_origin_x = player_x;
                 player_origin_y = player_y;
+            } else if (ch == 'C') {
+                ++clock_count;
             }
 
             if ('cCrRbB'.includes(ch)) {
@@ -868,12 +874,42 @@ function draw_level()
     var digit_height = 32 * 4;
     var digit_x = cv_width - digit_width;
     var number_to_render = div(timer_left, tps);
+    if (number_to_render == 0) {
+        ctx.drawImage(images["num/0.png"], digit_x, 0, digit_width, digit_height);
+    } else {
+        while (number_to_render > 0) {
+            var rem = number_to_render % 10;
+            ctx.drawImage(images["num/" + rem.toString() + ".png"], digit_x, 0, digit_width, digit_height);
+            number_to_render = div(number_to_render, 10);
+            digit_x -= digit_width;
+        }
+    }
+
+    digit_width = 12 * 4;
+    digit_height = 16 * 4;
+    digit_x = 0;
+    number_to_render = collected_clocks.length;
+    if (number_to_render == 0) {
+        ctx.drawImage(images["num2/0.png"], digit_x, 0, digit_width, digit_height);
+        digit_x += digit_width;
+    } else {
+        while (number_to_render > 0) {
+            var rem = number_to_render % 10;
+            ctx.drawImage(images["num2/" + rem.toString() + ".png"], digit_x, 0, digit_width, digit_height);
+            number_to_render = div(number_to_render, 10);
+            digit_x += digit_width;
+        }
+    }
+    ctx.drawImage(images["num2/slash.png"], digit_x, 0, digit_width, digit_height);
+    digit_x += digit_width;
+    number_to_render = clock_count;
     while (number_to_render > 0) {
         var rem = number_to_render % 10;
-        ctx.drawImage(images["num/" + rem.toString() + ".png"], digit_x, 0, digit_width, digit_height);
+        ctx.drawImage(images["num2/" + rem.toString() + ".png"], digit_x, 0, digit_width, digit_height);
         number_to_render = div(number_to_render, 10);
-        digit_x -= digit_width;
+        digit_x += digit_width;
     }
+    ctx.drawImage(textures['S'], digit_x, 0, digit_height, digit_height);
 }
 
 

@@ -780,6 +780,12 @@ function game_tick()
         if (!frame.ground && !bro_on_ladder && is_on('O', frame.x, frame.y)) {
             kill_bro(i);
         }
+        for (var j = 0; j < falling.length; j++) {
+            var faller = falling[j];
+            if (intersects(frame.x, frame.y, player_size, faller.x, faller.y, tile_size)) {
+                kill_bro(i);
+            }
+        }
     }
 
     if (is_on_broken_ladder && !is_on_ok_ladder && !is_on_ground(player_x, player_y)) {

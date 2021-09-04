@@ -280,6 +280,7 @@ const ladder_ttl = parseInt(tps * 1.5);
 const crumbling_ttl = parseInt(tps * 0.5);
 const faller_speed = 10;
 const timer_time = parseInt(tps * 20);
+const dying_time = parseInt(tps * 2);
 
 var elapsed = period / 2;
 
@@ -295,6 +296,10 @@ var recording_buffer = [];
 var recordings = [];
 var tick_counter = 0;
 var collected_clocks = [];
+
+var dying = false;
+var dying_left = 0;
+var vi_von = false;
 
 
 function pause_game()
@@ -340,7 +345,7 @@ function jump_up()
 }
 
 
-function kill_player()
+function reset_player()
 {
     player_x = player_origin_x;
     player_y = player_origin_y;
@@ -349,8 +354,18 @@ function kill_player()
     is_on_broken_ladder = false;
     is_on_ok_ladder = false;
     spawned = false;
+    vi_von = false;
+    dying = false;
+    dying_left = 0;
     recording_buffer = [];
     load_level();
+}
+
+
+function kill_player()
+{
+    dying = true;
+    dying_left = dying_time;
 }
 
 
@@ -569,6 +584,7 @@ function over_update(ch, x, y)
                     'x': x,
                     'y': y
                 });
+                vi_von = true;
                 kill_player();
             }
             break;
@@ -742,6 +758,8 @@ function game_tick()
     if (player_y + player_size > map_height * tile_size) {
         kill_player();
     }
+
+    ++tick_counter;
 }
 
 
@@ -795,11 +813,13 @@ function draw_level()
         ctx.drawImage(falling_img, element.x - camera_x, element.y - camera_y, tile_size, tile_size);
     }
 
-    for (var i = 0; i < recordings.length; i++) {
-        var record = recordings[i];
-        var frame = record[Math.min(record.length - 1, tick_counter)];
-        if (frame.spawn) {
-            ctx.drawImage(images["clone.jpg"], frame.x - camera_x, frame.y - camera_y, player_size, player_size);
+    if (!(dying && vi_von)) {
+        for (var i = 0; i < recordings.length; i++) {
+            var record = recordings[i];
+            var frame = record[Math.min(record.length - 1, tick_counter)];
+            if (frame.spawn) {
+                ctx.drawImage(images["clone.jpg"], frame.x - camera_x, frame.y - camera_y, player_size, player_size);
+            }
         }
     }
 
@@ -861,6 +881,7 @@ function loop()
     while (elapsed > period) {
         elapsed -= period;
         if (!paused) {
+            if (!dying) {
             recording_buffer.push({
                 x: player_x,
                 y: player_y,
@@ -881,8 +902,14 @@ function loop()
                     recording_buffer[last].ground = is_on_ground();
                 }
             }
-
-            ++tick_counter;
+            } else {
+                if (--dying_left < 0) {
+                    dying = false;
+                    vi_von = false;
+                    dying_left = 0;
+                    reset_player();
+                }
+            }
         }
     }
 

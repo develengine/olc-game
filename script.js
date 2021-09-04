@@ -178,7 +178,7 @@ var map_schematic = [
     "# # #################    ########F#######",
     " P                      #        F       ",
     "###XXXX#              #          F       ",
-    "  #                      E    H  F       ",
+    "  #                      E S  H  F       ",
     "                     #########H##F       ",
     "                   #          H  F       ",
     "                              H       S  ",
@@ -294,6 +294,7 @@ var paused = true;
 var recording_buffer = [];
 var recordings = [];
 var tick_counter = 0;
+var collected_clocks = [];
 
 
 function pause_game()
@@ -430,6 +431,41 @@ function load_level()
 
         map.push(row);
     }
+
+    for (var i = 0; i < collected_clocks.length; i++) {
+        var clock = collected_clocks[i];
+        map[clock.y][clock.x] = 's';
+    }
+}
+
+
+function swap_red_blue()
+{
+    for (var i = 0; i < red_blue_blocks.length; i++) {
+        var element = red_blue_blocks[i];
+        var ch = map[element.y][element.x];
+
+        if ('Cc'.includes(ch)) {
+            map[element.y][element.x] = ch == 'C' ? 'c' : 'C';
+        } else if ('Rr'.includes(ch)) {
+            map[element.y][element.x] = ch == 'R' ? 'r' : 'R';
+        } else if ('Bb'.includes(ch)) {
+            map[element.y][element.x] = ch == 'B' ? 'b' : 'B';
+        }
+    }
+}
+
+
+function try_break_block(x, y)
+{
+    if (map[y][x] == 'X') {
+        map[y][x] = 'K';
+        crumbling.push({
+            'x': x,
+            'y': y,
+            ttl: crumbling_ttl
+        });
+    }
 }
 
 
@@ -467,33 +503,35 @@ function bump(x, y, dir, v)
             break;
         case 'X':
             if (dir == DIR_DOWN) {
-                map[y][x] = 'K';
-                crumbling.push({
+                try_break_block(x, y);
+                recording_buffer[recording_buffer.length - 1].blocks.push({
                     'x': x,
-                    'y': y,
-                    ttl: crumbling_ttl
+                    'y': y
                 });
             }
             break;
         case 'C':
         case 'c':
             if (dir == DIR_UP) {
-                for (var i = 0; i < red_blue_blocks.length; i++) {
-                    var element = red_blue_blocks[i];
-                    var ch = map[element.y][element.x];
-
-                    if ('Cc'.includes(ch)) {
-                        map[element.y][element.x] = ch == 'C' ? 'c' : 'C';
-                    } else if ('Rr'.includes(ch)) {
-                        map[element.y][element.x] = ch == 'R' ? 'r' : 'R';
-                    } else if ('Bb'.includes(ch)) {
-                        map[element.y][element.x] = ch == 'B' ? 'b' : 'B';
-                    }
-                }
+                swap_red_blue();
+                recording_buffer[recording_buffer.length - 1].red_blue = true;
             }
             break;
         default:
             break;
+    }
+}
+
+
+function try_break_ladder(x, y)
+{
+    if (map[y][x] == 'F') {
+        breaking_ladders.push({
+            'x': x,
+            'y': y,
+            ttl: ladder_ttl
+        });
+        map[y][x] = 'T';
     }
 }
 
@@ -510,12 +548,11 @@ function over_update(ch, x, y)
             is_on_ok_ladder = true;
             break;
         case 'F':
-            breaking_ladders.push({
+            try_break_ladder(x, y);
+            recording_buffer[recording_buffer.length - 1].ladders.push({
                 'x': x,
-                'y': y,
-                ttl: ladder_ttl
+                'y': y
             });
-            map[y][x] = 'T';
             is_on_ok_ladder = true;
             break;
         case 'T':
@@ -526,8 +563,12 @@ function over_update(ch, x, y)
             break;
         case 'S':
             if (recording_buffer.length > 0) {
-                recordings.push(recording_buffer.slice());
+                recordings.push(recording_buffer);
                 recording_buffer = [];
+                collected_clocks.push({
+                    'x': x,
+                    'y': y
+                });
                 kill_player();
             }
             break;
@@ -572,11 +613,13 @@ function game_tick()
         velocity_y = 0;
     }
 
-    if (key_states['ArrowRight']) {
-        velocity_x += player_acc;
-    }
-    if (key_states['ArrowLeft']) {
-        velocity_x -= player_acc;
+    if (spawned) {
+        if (key_states['ArrowRight']) {
+            velocity_x += player_acc;
+        }
+        if (key_states['ArrowLeft']) {
+            velocity_x -= player_acc;
+        }
     }
 
     if (is_on_ladder && key_states['ArrowUp']) {
@@ -670,6 +713,24 @@ function game_tick()
     falling = falling.filter(a => a.y < map_height * tile_size);
 
     over_handler();
+
+    for (var i = 0; i < recordings.length; i++) {
+        var frame = recordings[i][Math.min(tick_counter, recordings[i].length - 1)];
+        if (frame.red_blue) {
+            swap_red_blue();
+        }
+        for (var j = 0; j < frame.ladders.length; j++) {
+            var ladder = frame.ladders[j];
+            try_break_ladder(ladder.x, ladder.y);
+        }
+        for (var j = 0; j < frame.blocks.length; j++) {
+            var block = frame.blocks[j];
+            try_break_block(block.x, block.y);
+        }
+        if (spawned && intersects(player_x, player_y, player_size, frame.x, frame.y, player_size)) {
+            kill_player();
+        }
+    }
 
     if (is_on_broken_ladder && !is_on_ok_ladder && !is_on_ground()) {
         kill_player();

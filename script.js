@@ -110,6 +110,8 @@ var to_load_images = [
     "clock.png", "clock_collected.jpg",
     "num/0.png", "num/1.png", "num/2.png", "num/3.png", "num/4.png", "num/5.png", "num/6.png", "num/7.png", "num/8.png", "num/9.png",
     "num2/0.png", "num2/1.png", "num2/2.png", "num2/3.png", "num2/4.png", "num2/5.png", "num2/6.png", "num2/7.png", "num2/8.png", "num2/9.png", "num2/slash.png",
+    "paused_screen.jpg",
+    "text/continue.png", "text/retry.png", "text/start.png", "text/degenerate.png",
 ];
 var loaded_imgs = 0;
 
@@ -364,6 +366,7 @@ function reset_player()
     bro_index = -1;
     recording_buffer = [];
     load_level();
+    paused = true;
 }
 
 
@@ -913,9 +916,36 @@ function draw_level()
 }
 
 
+const bg_width = 160 * 4;
+const bg_height = 96 * 4;
+const padding_x = 16 * 4;
+const padding_y = 8 * 4;
+const text_width = 128 * 4;
+const text_height = 32 * 4;
+
+
 function draw_menu()
 {
-    
+    if (!paused) {
+        return;
+    }
+
+    var bg_x = parseInt((cv_width - bg_width) / 2);
+    var bg_y = parseInt((cv_height - bg_height) / 2);
+
+    ctx.drawImage(images["paused_screen.jpg"], bg_x, bg_y, bg_width, bg_height);
+
+    var text_x = bg_x + padding_x;
+    var text_y = bg_y + padding_y;
+    ctx.drawImage(images["text/continue.png"], text_x, text_y, text_width, text_height);
+    text_y = bg_y + bg_height - padding_y - text_height;
+    ctx.drawImage(images["text/degenerate.png"], text_x, text_y, text_width, text_height);
+}
+
+
+function contains_point(x, y, xs, ys, w, h)
+{
+    return x >= xs && x <= xs + w && y >= ys && y <= ys + h;
 }
 
 
@@ -925,7 +955,17 @@ function click_handler(x, y)
         return;
     }
 
-    
+    var text_x = parseInt((cv_width - bg_width) / 2) + padding_x;
+    var text_y = parseInt((cv_height - bg_height) / 2) + padding_y;
+    if (contains_point(x, y, text_x, text_y, text_width, text_height)) {
+        paused = false;
+    }
+    text_y = parseInt((cv_height - bg_height) / 2) + bg_height - padding_y - text_height;
+    if (contains_point(x, y, text_x, text_y, text_width, text_height)) {
+        recordings.pop();
+        collected_clocks.pop();
+        reset_player();
+    }
 }
 
 

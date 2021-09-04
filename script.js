@@ -300,6 +300,7 @@ var collected_clocks = [];
 var dying = false;
 var dying_left = 0;
 var vi_von = false;
+var bro_index = -1;
 
 
 function pause_game()
@@ -314,11 +315,11 @@ function is_on_map(x, y)
 }
 
 
-function is_on_ground()
+function is_on_ground(xp, yp)
 {
-    var x1 = div(player_x, tile_size);
-    var x2 = div(player_x + player_size - 1, tile_size);
-    var y = div(player_y + player_size + ground_tolerance, tile_size);
+    var x1 = div(xp, tile_size);
+    var x2 = div(xp + player_size - 1, tile_size);
+    var y = div(yp + player_size + ground_tolerance, tile_size);
 
     if (y < 0 || y >= map_height) {
         return false;
@@ -338,7 +339,7 @@ function is_on_ground()
 
 function jump_up()
 {
-    if (!paused && is_on_ground()) {
+    if (!paused && is_on_ground(player_x, player_y)) {
         velocity_y = -jump_vel;
         velocity_x *= jump_acc;
     }
@@ -357,6 +358,7 @@ function reset_player()
     vi_von = false;
     dying = false;
     dying_left = 0;
+    bro_index = -1;
     recording_buffer = [];
     load_level();
 }
@@ -369,18 +371,25 @@ function kill_player()
 }
 
 
+function kill_bro(i)
+{
+    bro_index = i;
+    kill_player();
+}
+
+
 const DIR_UP    = 0;
 const DIR_DOWN  = 1;
 const DIR_LEFT  = 2;
 const DIR_RIGHT = 3;
 
 
-function is_on(ch)
+function is_on(ch, x, y)
 {
-    var x1 = div(player_x, tile_size);
-    var x2 = div(player_x + player_size - 1, tile_size);
-    var y1 = div(player_y, tile_size);
-    var y2 = div(player_y + player_size - 1, tile_size);
+    var x1 = div(x, tile_size);
+    var x2 = div(x + player_size - 1, tile_size);
+    var y1 = div(y, tile_size);
+    var y2 = div(y + player_size - 1, tile_size);
 
     if (is_on_map(x1, y1) && map[y1][x1] == ch) {
         return true;
@@ -551,6 +560,18 @@ function try_break_ladder(x, y)
 }
 
 
+function is_in_solid(x, y)
+{
+    var solids = '#MW3EXKCcRB';
+    for (var i = 0; i < solids.length; i++) {
+        if (is_on(solids[i], x, y)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+
 function over_update(ch, x, y)
 {
     if (is_solid(ch)) {
@@ -626,7 +647,7 @@ function game_tick()
     is_on_ok_ladder = false;
     is_on_broken_ladder = false;
 
-    var is_on_ladder = is_on('H') || is_on('F') || is_on('T');
+    var is_on_ladder = is_on('H', player_x, player_y) || is_on('F', player_x, player_y) || is_on('T', player_x, player_y);
     if (is_on_ladder) {
         velocity_x = 0;
         velocity_y = 0;
@@ -749,9 +770,19 @@ function game_tick()
         if (spawned && frame.spawn && intersects(player_x, player_y, player_size, frame.x, frame.y, player_size)) {
             kill_player();
         }
+        if (is_in_solid(frame.x, frame.y)) {
+            kill_bro(i);
+        }
+        if (frame.ground && !is_on_ground(frame.x, frame.y)) {
+            kill_bro(i);
+        }
+        var bro_on_ladder = is_on('H', frame.x, frame.y) || is_on('F', frame.x, frame.y) || is_on('T', frame.x, frame.y);
+        if (!frame.ground && !bro_on_ladder && is_on('O', frame.x, frame.y)) {
+            kill_bro(i);
+        }
     }
 
-    if (is_on_broken_ladder && !is_on_ok_ladder && !is_on_ground()) {
+    if (is_on_broken_ladder && !is_on_ok_ladder && !is_on_ground(player_x, player_y)) {
         kill_player();
     }
 
@@ -899,7 +930,7 @@ function loop()
                 recording_buffer[last].x = player_x;
                 recording_buffer[last].y = player_y;
                 if (spawned) {
-                    recording_buffer[last].ground = is_on_ground();
+                    recording_buffer[last].ground = is_on_ground(player_x, player_y);
                 }
             }
             } else {
@@ -917,8 +948,10 @@ function loop()
     debug2.textContent = "Pos: " + player_x + ", " + player_y;
     debug4.textContent = "Recordings: " + recordings.length.toString();
 
-    var cam_x = Math.min(map_width * tile_size - cv_width, Math.max(0, player_x - ((cv_width - player_size) / 2)));
-    var cam_y = Math.min(map_height * tile_size - cv_height, Math.max(0, player_y - ((cv_height - player_size) / 2)));
+    var follow_x = bro_index < 0 ? player_x : recordings[bro_index][Math.min(tick_counter, recordings[bro_index].length - 1)].x;
+    var follow_y = bro_index < 0 ? player_y : recordings[bro_index][Math.min(tick_counter, recordings[bro_index].length - 1)].y;
+    var cam_x = Math.min(map_width * tile_size - cv_width, Math.max(0, follow_x - ((cv_width - player_size) / 2)));
+    var cam_y = Math.min(map_height * tile_size - cv_height, Math.max(0, follow_y - ((cv_height - player_size) / 2)));
     camera_x = camera_x + (cam_x - camera_x) * camera_drag;
     camera_y = camera_y + (cam_y - camera_y) * camera_drag;
 

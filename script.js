@@ -55,8 +55,13 @@ window.onkeydown = function(e)
     }
     if (e.key == 'ArrowUp' && !e.repeat) {
         jump_up();
+        try_move_select();
     } else if (e.key == 'Escape' && !e.repeat) {
         pause_game();
+    } else if (e.key == ' ' || e.key == 'Enter') {
+        try_select();
+    } else if (e.key == 'ArrowDown' || e.key == 'ArrowLeft' || e.key == 'ArrowRight') {
+        try_move_select();
     }
 }
 
@@ -69,7 +74,6 @@ canvas.addEventListener('mousemove', function(e)
     var canvas_rect = canvas.getBoundingClientRect();
     var x = e.clientX - canvas_rect.left;
     var y = e.clientY - canvas_rect.top;
-    // debug2.textContent = "Mouse: " + x + ", " + y;
     click_handler(x, y, true);
 }, false);
 
@@ -79,7 +83,6 @@ canvas.addEventListener('mousedown', function(e)
     var canvas_rect = canvas.getBoundingClientRect();
     var x = e.clientX - canvas_rect.left;
     var y = e.clientY - canvas_rect.top;
-    // debug3.textContent = "Mouse down: " + x + ", " + y;
     click_handler(x, y, false);
     return false;
 });
@@ -97,7 +100,6 @@ canvas.addEventListener('mouseup', function(e)
 
 canvas.addEventListener("wheel", function(e) {
     e.preventDefault();
-    // debug4.textContent = "Wheel: " + e.deltaY;
 });
 
 
@@ -854,13 +856,12 @@ function draw_level()
         ctx.drawImage(falling_img, element.x - camera_x, element.y - camera_y, tile_size, tile_size);
     }
 
-    if (!(dying && vi_von)) {
-        for (var i = 0; i < recordings.length; i++) {
-            var record = recordings[i];
-            var frame = record[Math.min(record.length - 1, tick_counter)];
-            if (frame.spawn) {
-                ctx.drawImage(images["clone.jpg"], frame.x - camera_x, frame.y - camera_y, player_size, player_size);
-            }
+    var recording_render_count = vi_von ? Math.max(recordings.length - 1, 0) : recordings.length;
+    for (var i = 0; i < recording_render_count; i++) {
+        var record = recordings[i];
+        var frame = record[Math.min(record.length - 1, tick_counter)];
+        if (frame.spawn) {
+            ctx.drawImage(images["clone.jpg"], frame.x - camera_x, frame.y - camera_y, player_size, player_size);
         }
     }
 
@@ -936,6 +937,26 @@ function pause_game()
 }
 
 
+function try_select()
+{
+    if (!paused) {
+        return;
+    }
+    var x = cv_width / 2;
+    var y1 = parseInt((cv_height - bg_height) / 2) + padding_y;
+    var y2 = parseInt((cv_height - bg_height) / 2) + bg_height - padding_y - text_height;
+    click_handler(x, hovers_on == 1 ? y1 : y2, false);
+}
+
+
+function try_move_select()
+{
+    if (paused && recordings.length > 0) {
+        hovers_on = hovers_on == 1 ? 2 : 1;
+    }
+}
+
+
 function draw_menu()
 {
     if (!paused) {
@@ -1002,6 +1023,7 @@ function click_handler(x, y, hovers)
             recordings.pop();
             collected_clocks.pop();
             reset_player();
+            paused = true;
             if (recordings.length == 0) {
                 hovers_on = 1;
             }

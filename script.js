@@ -279,7 +279,7 @@ const period = sps / tps;
 const ladder_ttl = parseInt(tps * 1.5);
 const crumbling_ttl = parseInt(tps * 0.5);
 const faller_speed = 10;
-const timer_time = parseInt(tps * 100);
+const timer_time = parseInt(tps * 20);
 
 var elapsed = period / 2;
 
@@ -602,7 +602,10 @@ function over_handler()
 
 function game_tick()
 {
-    --timer_left;
+    if (--timer_left <= 0) {
+        kill_player();
+        return;
+    }
 
     is_on_ok_ladder = false;
     is_on_broken_ladder = false;
@@ -727,7 +730,7 @@ function game_tick()
             var block = frame.blocks[j];
             try_break_block(block.x, block.y);
         }
-        if (spawned && intersects(player_x, player_y, player_size, frame.x, frame.y, player_size)) {
+        if (spawned && frame.spawn && intersects(player_x, player_y, player_size, frame.x, frame.y, player_size)) {
             kill_player();
         }
     }

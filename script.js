@@ -70,6 +70,7 @@ canvas.addEventListener('mousemove', function(e)
     var x = e.clientX - canvas_rect.left;
     var y = e.clientY - canvas_rect.top;
     // debug2.textContent = "Mouse: " + x + ", " + y;
+    click_handler(x, y, true);
 }, false);
 
 
@@ -79,7 +80,7 @@ canvas.addEventListener('mousedown', function(e)
     var x = e.clientX - canvas_rect.left;
     var y = e.clientY - canvas_rect.top;
     // debug3.textContent = "Mouse down: " + x + ", " + y;
-    click_handler(x, y);
+    click_handler(x, y, false);
     return false;
 });
 
@@ -110,8 +111,8 @@ var to_load_images = [
     "clock.png", "clock_collected.jpg",
     "num/0.png", "num/1.png", "num/2.png", "num/3.png", "num/4.png", "num/5.png", "num/6.png", "num/7.png", "num/8.png", "num/9.png",
     "num2/0.png", "num2/1.png", "num2/2.png", "num2/3.png", "num2/4.png", "num2/5.png", "num2/6.png", "num2/7.png", "num2/8.png", "num2/9.png", "num2/slash.png",
-    "paused_screen.jpg",
-    "text/continue.png", "text/retry.png", "text/start.png", "text/degenerate.png",
+    "paused_screen.jpg", "title_screen.jpeg", "end_screen.jpg",
+    "text/continue.png", "text/retry.png", "text/start.png", "text/degenerate.png", "text/select.png",
 ];
 var loaded_imgs = 0;
 
@@ -308,12 +309,6 @@ var bro_index = -1;
 var clock_count = 0;
 
 
-function pause_game()
-{
-    paused = !paused;
-}
-
-
 function is_on_map(x, y)
 {
     return x > 0 && x < map_width && y > 0 && y < map_height;
@@ -366,7 +361,7 @@ function reset_player()
     bro_index = -1;
     recording_buffer = [];
     load_level();
-    paused = true;
+    pause_game();
 }
 
 
@@ -923,6 +918,23 @@ const padding_y = 8 * 4;
 const text_width = 128 * 4;
 const text_height = 32 * 4;
 
+var hovers_on = 1;
+var on_title_screen = true;
+var game_is_won = false;
+
+
+function pause_game()
+{
+    if (game_is_won) {
+        return;
+    }
+    paused = !paused;
+    on_title_screen = false;
+    if (collected_clocks.length == clock_count) {
+        game_is_won = true;
+    }
+}
+
 
 function draw_menu()
 {
@@ -933,13 +945,29 @@ function draw_menu()
     var bg_x = parseInt((cv_width - bg_width) / 2);
     var bg_y = parseInt((cv_height - bg_height) / 2);
 
-    ctx.drawImage(images["paused_screen.jpg"], bg_x, bg_y, bg_width, bg_height);
+    if (on_title_screen) {
+        ctx.drawImage(images["title_screen.jpeg"], 0, 0, cv_width, cv_height);
+    } else if (game_is_won) {
+        ctx.drawImage(images["end_screen.jpg"], 0, 0, cv_width, cv_height);
+        return;
+    } else {
+        ctx.drawImage(images["paused_screen.jpg"], bg_x, bg_y, bg_width, bg_height);
+    }
 
     var text_x = bg_x + padding_x;
     var text_y = bg_y + padding_y;
+    if (hovers_on == 1) {
+        ctx.drawImage(images["text/select.png"], text_x, text_y, text_width, text_height);
+    }
     ctx.drawImage(images["text/continue.png"], text_x, text_y, text_width, text_height);
-    text_y = bg_y + bg_height - padding_y - text_height;
-    ctx.drawImage(images["text/degenerate.png"], text_x, text_y, text_width, text_height);
+
+    if (recordings.length > 0) {
+        text_y = bg_y + bg_height - padding_y - text_height;
+        if (hovers_on == 2) {
+            ctx.drawImage(images["text/select.png"], text_x, text_y, text_width, text_height);
+        }
+        ctx.drawImage(images["text/degenerate.png"], text_x, text_y, text_width, text_height);
+    }
 }
 
 
@@ -949,7 +977,7 @@ function contains_point(x, y, xs, ys, w, h)
 }
 
 
-function click_handler(x, y)
+function click_handler(x, y, hovers)
 {
     if (!paused) {
         return;
@@ -958,13 +986,26 @@ function click_handler(x, y)
     var text_x = parseInt((cv_width - bg_width) / 2) + padding_x;
     var text_y = parseInt((cv_height - bg_height) / 2) + padding_y;
     if (contains_point(x, y, text_x, text_y, text_width, text_height)) {
-        paused = false;
+        if (hovers) {
+            hovers_on = 1;
+            return;
+        }
+        pause_game();
     }
     text_y = parseInt((cv_height - bg_height) / 2) + bg_height - padding_y - text_height;
     if (contains_point(x, y, text_x, text_y, text_width, text_height)) {
-        recordings.pop();
-        collected_clocks.pop();
-        reset_player();
+        if (recordings.length > 0) {
+            if (hovers) {
+                hovers_on = 2;
+                return;
+            }
+            recordings.pop();
+            collected_clocks.pop();
+            reset_player();
+            if (recordings.length == 0) {
+                hovers_on = 1;
+            }
+        }
     }
 }
 

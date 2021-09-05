@@ -178,7 +178,7 @@ function play_noise()
 
 
 var is_played = false;
-
+/*
 var map_schematic = [
     "          #                              ",
     "# # #################    ########F#######",
@@ -198,7 +198,30 @@ var map_schematic = [
     "####  ###################################",
     "####  ###################################"
 ];
-
+*/
+var map_schematic = [
+    "#########################################################################",
+    "#                    C       #      W                  #                #",
+    "#                       ######S                        #                #",
+    "#                RRR#####    ######XXX#                #                #",
+    "#                                    H# b#bb   b#b   #H#                #",
+    "##bbbbb#RRRRR######## ##X#XX#X#######H#M #MMMMM #MMM #H#                #",
+    "#      #            # #              H################H##               #",
+    "#      #            # #  S           H                 S#               #",
+    "#      #           ## #####          H###################               #",
+    "#      #           #   S##           F       3#     3#                  #",
+    "#      #           #H#####E  H#      H               #                  #",
+    "#      #            H   ##   H#     #H ##   #####E   #                  #",
+    "#      #            H   RR    #      HM# MMM     #E M#                  #",
+    "#      #            H   RR     # #######         #S 3#                  #",
+    "#      #            F   ###     P                ######                 #",
+    "#      #############H   ##    ####XXXX                                  #",
+    "#                   H   ##    #                                         #",
+    "#                   H   ##    W                                         #",
+    "#                       ##     S                                        #",
+    "##########################    ####    ###################################",
+    "##########################    ####    ##################################"
+];
 
 var map = [];
 
@@ -447,7 +470,7 @@ function load_level()
                 player_y = y * tile_size + tile_size - player_size;
                 player_origin_x = player_x;
                 player_origin_y = player_y;
-            } else if (ch == 'C') {
+            } else if (ch == 'S') {
                 ++clock_count;
             }
 
@@ -1091,7 +1114,7 @@ function loop()
 
     debug5.textContent = 'X: ' + velocity_x.toString() + ', Y: ' + velocity_y.toString();
     debug2.textContent = "Pos: " + player_x + ", " + player_y;
-    debug4.textContent = "Recordings: " + recordings.length.toString();
+    debug4.textContent = "Clocks: " + clock_count.toString();
 
     var follow_x = bro_index < 0 ? player_x : recordings[bro_index][Math.min(tick_counter, recordings[bro_index].length - 1)].x;
     var follow_y = bro_index < 0 ? player_y : recordings[bro_index][Math.min(tick_counter, recordings[bro_index].length - 1)].y;

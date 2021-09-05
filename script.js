@@ -201,26 +201,26 @@ var map_schematic = [
 */
 var map_schematic = [
     "#########################################################################",
-    "#                    C       #      W                  #                #",
-    "#                       ######S                        #                #",
-    "#                RRR#####    ######XXX#                #                #",
-    "#                                    H# b#bb   b#b   #H#                #",
-    "##bbbbb#RRRRR######## ##X#XX#X#######H#M #MMMMM #MMM #H#                #",
-    "#      #            # #              H################H##               #",
-    "#      #            # #  S           H                 S#               #",
-    "#      #           ## #####          H###################               #",
-    "#      #           #   S##           F       3#     3#                  #",
-    "#      #           #H#####E  H#      H               #                  #",
-    "#      #            H   ##   H#     #H ##   #####E   #                  #",
-    "#      #            H   RR    #      HM# MMM     #E M#                  #",
-    "#      #            H   RR     # #######         #S 3#                  #",
-    "#      #            F   ###     P                ######                 #",
-    "#      #############H   ##    ####XXXX                                  #",
-    "#                   H   ##    #                                         #",
-    "#                   H   ##    W                                         #",
-    "#                       ##     S                                        #",
-    "##########################    ####    ###################################",
-    "##########################    ####    ##################################"
+    "# S      b           C    S  #      W                  #                #",
+    "######   b              ######  S                      #                #",
+    "#        ########RRR#####    ######XXX#                # S              #",
+    "#                    H               H# b#bb   b#b   #H####             #",
+    "#bbbbbb#RRRRRR#######H##X#XX#X#######H#M #MMMMM #MMM #H#        ##      #",
+    "#      #            #H#              H################H##MMMMMM     #   #",
+    "#      #            #H#  S           H                 S#S             ##",
+    "#M    M#######     ##H#####          H#############################     #",
+    "#RRRRRR#           #   S##           F       3#     3#               ####",
+    "#      ##          #H#####E  H##     H               #   XXXX####XXXX   #",
+    "#      ##    #######H   ##   H#     #H ##   #####E   #H       WW        #",
+    "#  MMMM#            H   RR    #      HM# MMM     #E M#F##               #",
+    "#bbbbbb#E           H   RR     # ### H##         #S 3#F  ####XXXX###    #",
+    "#      #S M         F   ###     P                #####F     W    W      #",
+    "#      #############H   ##    ####XXXX             H  H              ####",
+    "#       #       b   H   ##    #            ########H#######XXXXXXXXXX   #",
+    "#   S   #   S   b   H   ##    W        #   R   #   F      W           S #",
+    "#       #       b       ##     S           R   S   H   #E               #",
+    "#################  #######    ####    ###  ##################### ########",
+    "#################  #######    ####    ###  ##################### ########"
 ];
 
 var map = [];
@@ -308,7 +308,7 @@ const period = sps / tps;
 const ladder_ttl = parseInt(tps * 1.5);
 const crumbling_ttl = parseInt(tps * 0.5);
 const faller_speed = 10;
-const timer_time = parseInt(tps * 20);
+const timer_time = parseInt(tps * 30);
 const dying_time = parseInt(tps * 2);
 
 var elapsed = period / 2;
@@ -910,25 +910,18 @@ function draw_level()
     digit_width = 12 * 4;
     digit_height = 16 * 4;
     digit_x = 0;
-    number_to_render = collected_clocks.length;
-    if (number_to_render == 0) {
-        ctx.drawImage(images["num2/0.png"], digit_x, 0, digit_width, digit_height);
+    var string_to_render = collected_clocks.length.toString();
+    for (var i = 0; i < string_to_render.length; i++) {
+        var digit = string_to_render[i];
+        ctx.drawImage(images["num2/" + digit + ".png"], digit_x, 0, digit_width, digit_height);
         digit_x += digit_width;
-    } else {
-        while (number_to_render > 0) {
-            var rem = number_to_render % 10;
-            ctx.drawImage(images["num2/" + rem.toString() + ".png"], digit_x, 0, digit_width, digit_height);
-            number_to_render = div(number_to_render, 10);
-            digit_x += digit_width;
-        }
     }
     ctx.drawImage(images["num2/slash.png"], digit_x, 0, digit_width, digit_height);
     digit_x += digit_width;
-    number_to_render = clock_count;
-    while (number_to_render > 0) {
-        var rem = number_to_render % 10;
-        ctx.drawImage(images["num2/" + rem.toString() + ".png"], digit_x, 0, digit_width, digit_height);
-        number_to_render = div(number_to_render, 10);
+    string_to_render = clock_count.toString();
+    for (var i = 0; i < string_to_render.length; i++) {
+        var digit = string_to_render[i];
+        ctx.drawImage(images["num2/" + digit + ".png"], digit_x, 0, digit_width, digit_height);
         digit_x += digit_width;
     }
     ctx.drawImage(textures['S'], digit_x, 0, digit_height, digit_height);

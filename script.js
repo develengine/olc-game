@@ -105,16 +105,17 @@ canvas.addEventListener("wheel", function(e) {
 
 var images = { };
 var to_load_images = [
-    "obama.png", "concrete.jpg", "test.png", "clone.jpg",
-    "spikes.jpg", "spikes_down.jpg", "spikes_right.jpg", "spikes_left.jpg",
-    "ladder.png", "cracked_ladder.jpg", "breaking_ladder.jpg", "broken_ladder.png",
+    "obama.png", "concrete.png", "test.png", "clone.png", "clone_screaming.png", "obama_screaming.png",
+    "spikes.png", "spikes_down.png", "spikes_right.png", "spikes_left.png",
+    "ladder.png", "cracked_ladder.png", "breaking_ladder.png", "broken_ladder.png",
     "cracked.png", "crumbling.png", "falling.png",
     "control_red.png", "control_blue.png", "full_red.png", "full_blue.png", "empty_red.png", "empty_blue.png",
-    "clock.png", "clock_collected.jpg",
+    "clock.png", "clock_collected.png",
     "num/0.png", "num/1.png", "num/2.png", "num/3.png", "num/4.png", "num/5.png", "num/6.png", "num/7.png", "num/8.png", "num/9.png",
     "num2/0.png", "num2/1.png", "num2/2.png", "num2/3.png", "num2/4.png", "num2/5.png", "num2/6.png", "num2/7.png", "num2/8.png", "num2/9.png", "num2/slash.png",
-    "paused_screen.jpg", "title_screen.jpeg", "end_screen.jpg",
-    "text/continue.png", "text/retry.png", "text/start.png", "text/degenerate.png", "text/select.png",
+    "paused_screen.png", "title_screen.png", "end_screen.png",
+    "text/continue.png", "text/degenerate.png", "text/select.png",
+    "press_to_start.png",
 ];
 var loaded_imgs = 0;
 
@@ -201,15 +202,15 @@ var map_schematic = [
 */
 var map_schematic = [
     "#########################################################################",
-    "# S   b  b           C    S  #      W                  #S H             #",
+    "# S   b  b           C  b S  #      W                  #S H             #",
     "######b  b              ######  S                      ###H             #",
     "#     #  ########RRR#####    ######XXX#                #                #",
     "#                    H               H# b#bb   b#b   #H#    #           #",
     "#bbbbbb#RRRRRR#######H##X#XX#X#######H#M #MMMMM #MMM #H#M       #       #",
     "#      #            #H#              H################H##MMMMM      #   #",
-    "#      #            #H#  S           H                 S#S             ##",
-    "#M    M#######     ##H#####          H##########################        #",
-    "#RRRRRR#           #   S##           F       3#     3#              #####",
+    "#      #            #H###S           H                 S#S             ##",
+    "#M    M#######     ##H S###          H##########################        #",
+    "#RRRRRR#           #     #           F       3#     3#              #####",
     "#      ##          #H#####E  H##     H               #   XXXX####XXX    #",
     "#      ##   ########H   ##   H#     #H ##   #####E   #H       WW        #",
     "#  MMMM##           H   RR    #      HM# MMM     #E M#F###              #",
@@ -831,17 +832,18 @@ function game_tick()
 
 function draw_level()
 {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#000002";
+    ctx.fillRect(0, 0, cv_width, cv_height);
 
     var textures = {
-        '#': images["concrete.jpg"],
-        'M': images["spikes.jpg"],
-        'W': images["spikes_down.jpg"],
-        'E': images["spikes_right.jpg"],
-        '3': images["spikes_left.jpg"],
+        '#': images["concrete.png"],
+        'M': images["spikes.png"],
+        'W': images["spikes_down.png"],
+        'E': images["spikes_right.png"],
+        '3': images["spikes_left.png"],
         'H': images["ladder.png"],
-        'F': images["cracked_ladder.jpg"],
-        'T': images["breaking_ladder.jpg"],
+        'F': images["cracked_ladder.png"],
+        'T': images["breaking_ladder.png"],
         'O': images["broken_ladder.png"],
         'X': images["cracked.png"],
         'K': images["crumbling.png"],
@@ -852,7 +854,7 @@ function draw_level()
         'r': images["empty_red.png"],
         'b': images["empty_blue.png"],
         'S': images["clock.png"],
-        's': images["clock_collected.jpg"],
+        's': images["clock_collected.png"],
     };
     var unknown_img = images["test.png"];
 
@@ -884,12 +886,20 @@ function draw_level()
         var record = recordings[i];
         var frame = record[Math.min(record.length - 1, tick_counter)];
         if (frame.spawn) {
-            ctx.drawImage(images["clone.jpg"], frame.x - camera_x, frame.y - camera_y, player_size, player_size);
+            if (dying && bro_index == i) {
+                ctx.drawImage(images["clone_screaming.png"], frame.x - camera_x, frame.y - camera_y, player_size, player_size);
+            } else {
+                ctx.drawImage(images["clone.png"], frame.x - camera_x, frame.y - camera_y, player_size, player_size);
+            }
         }
     }
 
     if (spawned) {
-        ctx.drawImage(images["obama.png"], player_x - camera_x, player_y - camera_y, player_size, player_size);
+        if (dying && bro_index == -1) {
+            ctx.drawImage(images["obama_screaming.png"], player_x - camera_x, player_y - camera_y, player_size, player_size);
+        } else {
+            ctx.drawImage(images["obama.png"], player_x - camera_x, player_y - camera_y, player_size, player_size);
+        }
     }
 
     var digit_width = 24 * 4;
@@ -925,6 +935,11 @@ function draw_level()
         digit_x += digit_width;
     }
     ctx.drawImage(textures['S'], digit_x, 0, digit_height, digit_height);
+
+    if (!paused && !spawned) {
+        var x_pos = (cv_width - 512) / 2;
+        ctx.drawImage(images["press_to_start.png"], x_pos, 0, 512, 64);
+    }
 }
 
 
@@ -983,12 +998,12 @@ function draw_menu()
     var bg_y = parseInt((cv_height - bg_height) / 2);
 
     if (on_title_screen) {
-        ctx.drawImage(images["title_screen.jpeg"], 0, 0, cv_width, cv_height);
+        ctx.drawImage(images["title_screen.png"], 0, 0, cv_width, cv_height);
     } else if (game_is_won) {
-        ctx.drawImage(images["end_screen.jpg"], 0, 0, cv_width, cv_height);
+        ctx.drawImage(images["end_screen.png"], 0, 0, cv_width, cv_height);
         return;
     } else {
-        ctx.drawImage(images["paused_screen.jpg"], bg_x, bg_y, bg_width, bg_height);
+        ctx.drawImage(images["paused_screen.png"], bg_x, bg_y, bg_width, bg_height);
     }
 
     var text_x = bg_x + padding_x;

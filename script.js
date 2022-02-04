@@ -178,29 +178,9 @@ function play_noise()
 }
 
 
-var is_played = false;
-/*
-var map_schematic = [
-    "          #                              ",
-    "# # #################    ########F#######",
-    " P                      #        F       ",
-    "###XXXX#              #          F       ",
-    "  #                      E S  H  F       ",
-    "                     #########H##F       ",
-    "                   #          H  F       ",
-    "                              H       S  ",
-    "                  #       XX########H##  ",
-    "#               #      M            H    ",
-    "#           ###       3 E           H    ",
-    "#           #          W            F    ",
-    " #         #                        H    ",
-    "          ##   W           C  bbC RRH    ",
-    "             3       M  M  b        H    ",
-    "####  ###################################",
-    "####  ###################################"
-];
-*/
-var map_schematic = [
+var is_played = false; // trolling
+
+var map_schematic_final = [
     "#########################################################################",
     "# S   b  b           C  b S  #      W                  #S H             #",
     "######b  b              ######  S                      ###H             #",
@@ -222,6 +202,69 @@ var map_schematic = [
     "#       #       b       ##     S           R   S   H      S             #",
     "#################  #######    ####    ###  #####################  #######",
     "#################  #######    ####    ###  #####################  #######"
+];
+
+var map_schematic_empty = [
+    "###################",
+    "#                 #",
+    "#                 #",
+    "#                 #",
+    "#                 #",
+    "#                 #",
+    "#                 #",
+    "#                 #",
+    "#                 #",
+    "#   P         S   #",
+    "###################"
+];
+
+var map_schematic_cringe_1 = [
+    "###################",
+    "#           #     #",
+    "#       ###       #",
+    "#      #  #     S #",
+    "#   #     # S     #",
+    "#   #     #    ####",
+    "#    #    ######  #",
+    "#      #  #S   #  #",
+    "#      ## #### ####",
+    "#  P           S  #",
+    "###################"
+];
+
+var map_schematic_cringe_2 = [
+    "###################",
+    "#S      #S    #   #",
+    "#       #####H#   #",
+    "#            HW   #",
+    "#  X   X         S#",
+    "#MM MMM H#XXXHX#X##",
+    "#       H    H #  #",
+    "#       F    H # S#",
+    "#       H    H # ##",
+    "#  P    H #      S#",
+    "###################"
+];
+
+var map_schematic_cringe_3 = [
+    "###################",
+    "#                 #",
+    "#                 #",
+    "#                 #",
+    "#                 #",
+    "#                 #",
+    "#                 #",
+    "#                 #",
+    "#                 #",
+    "#   P         S   #",
+    "###################"
+];
+
+var level_schematics = [
+    map_schematic_cringe_2,
+    map_schematic_cringe_1,
+    map_schematic_cringe_3,
+    map_schematic_final
 ];
 
 var map = [];
@@ -334,6 +377,8 @@ var bro_index = -1;
 
 var clock_count = 0;
 
+var current_level = 0;
+
 
 function is_on_map(x, y)
 {
@@ -391,10 +436,14 @@ function reset_player()
 }
 
 
-function kill_player()
+function kill_player(is_ded = true)
 {
     dying = true;
     dying_left = dying_time;
+    console.log("cringe", is_ded);
+    if (is_ded) {
+        play_sound("scream.wav");
+    }
 }
 
 
@@ -452,6 +501,8 @@ function load_level()
     crumbling = [];
     falling = [];
     breaking_ladders = [];
+
+    map_schematic = level_schematics[current_level];
 
     map_width = map_schematic[0].length;
     map_height = map_schematic.length;
@@ -636,7 +687,8 @@ function over_update(ch, x, y)
                     'y': y
                 });
                 vi_von = true;
-                kill_player();
+                play_sound("clock_grab.wav");
+                kill_player(false);
             }
             break;
         default:
@@ -782,8 +834,6 @@ function game_tick()
     }
     falling = falling.filter(a => a.y < map_height * tile_size);
 
-    over_handler();
-
     for (var i = 0; i < recordings.length; i++) {
         var frame = recordings[i][Math.min(tick_counter, recordings[i].length - 1)];
         if (frame.red_blue) {
@@ -810,13 +860,17 @@ function game_tick()
         if (!frame.ground && !bro_on_ladder && is_on('O', frame.x, frame.y)) {
             kill_bro(i);
         }
-        for (var j = 0; j < falling.length; j++) {
-            var faller = falling[j];
-            if (intersects(frame.x, frame.y, player_size, faller.x, faller.y, tile_size)) {
-                kill_bro(i);
+        if (frame.spawn) {
+            for (var j = 0; j < falling.length; j++) {
+                var faller = falling[j];
+                if (intersects(frame.x, frame.y, player_size, faller.x, faller.y, tile_size)) {
+                    kill_bro(i);
+                }
             }
         }
     }
+
+    over_handler();
 
     if (is_on_broken_ladder && !is_on_ok_ladder && !is_on_ground(player_x, player_y)) {
         kill_player();
@@ -963,7 +1017,15 @@ function pause_game()
     paused = !paused;
     on_title_screen = false;
     if (collected_clocks.length == clock_count) {
-        game_is_won = true;
+        ++current_level;
+        if (current_level == level_schematics.length) {
+            game_is_won = true;
+        } else {
+            recording_buffer = [];
+            recordings = [];
+            collected_clocks = [];
+            load_level();
+        }
     }
 }
 
@@ -1066,6 +1128,7 @@ function click_handler(x, y, hovers)
 function maybe_spawn()
 {
     if (!paused && !spawned) {
+        play_sound("pop.wav");
         spawned = true;
     }
 }
@@ -1078,7 +1141,6 @@ function loop()
     elapsed += delta_time;
 
     if (key_states['p'] && !is_played) {
-        // play_sound("rap.ogg");
         play_noise();
         is_played = true;
     } else if (!key_states['p'] && is_played) {
